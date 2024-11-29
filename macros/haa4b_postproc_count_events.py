@@ -69,7 +69,7 @@ for samp in SAMPS:
 
         ## gg0l
         if ch.Haa4b_cat_gg0l == 1 and ch.Haa4b_FatH_tagHaa4b_v1 > 0.992 and \
-           (ch.Haa4b_trigFat + ch.Haa4b_trigBtag >= 1):
+           (ch.Haa4b_trigFat + ch.Haa4b_trigBtag >= 1) and ch.Haa4b_nJetBtag == 0:
             if ch.Haa4b_FatH_pt > 400:
                 count[samp]['gg0lHi'] += 1
             elif ch.Haa4b_FatH_pt > 250:
@@ -77,7 +77,7 @@ for samp in SAMPS:
         ## VBFjj
         if ch.Haa4b_cat_VBFjj == 1 and ch.Haa4b_FatH_tagHaa4b_v1 > 0.992 and \
            (ch.Haa4b_trigFat + ch.Haa4b_trigBtag + ch.Haa4b_trigVBF) >= 1 and \
-           ch.Haa4b_FatH_pt > 250:
+           ch.Haa4b_FatH_pt > 250 and ch.Haa4b_nJetBtag == 0:
             if ch.Haa4b_dijet_mass > 900 and ch.Haa4b_dijet_dEta > 3.0:
                 count[samp]['VBFjjHi'] += 1
             else:
@@ -94,7 +94,7 @@ for samp in SAMPS:
             count[samp]['Vjj'] += 1
         ## ttHad
         if ch.Haa4b_cat_ttHad == 1 and (ch.Haa4b_trigFat + ch.Haa4b_trigBtag) >= 1 and \
-           ch.Haa4b_FatH_pt > 250 and ch.Haa4b_FatX_tagTop_max > 0.8:
+           ch.Haa4b_FatH_pt > 250 and ch.Haa4b_FatX_tagTop_max > 0.8 and ch.Haa4b_nJetBtag >= 1:
             count[samp]['ttHad'] += 1
 
         ## All lepton categories must have trigger lepton and fire trigger
@@ -103,19 +103,20 @@ for samp in SAMPS:
         flav = ('_m' if ch.Haa4b_isMu else '_e')
 
         ## Wlv
-        if ch.Haa4b_cat_Wlv == 1:
+        if ch.Haa4b_cat_Wlv == 1 and ch.Haa4b_nJetBtag == 0:
             pure = ('Hi' if ch.Haa4b_lepMET_pt > 300 else 'Lo')
             count[samp]['Wlv'+pure+flav] += 1
         ## Zll
         if ch.Haa4b_cat_Zll == 1:
             count[samp]['Zll'+flav] += 1
         ## ttlv
-        if ch.Haa4b_cat_ttlv == 1:
+        if ch.Haa4b_iLep1 >= 0 and ch.Haa4b_iLep2 < 0 and ch.Haa4b_nJetBtag >= 1:
             nbs = ('bb' if ch.Haa4b_nJetBtag >= 2 else 'b')
             count[samp]['tt'+nbs+'lv'+flav] += 1
         ## ttll
-        if ch.Haa4b_cat_ttll == 1:
-            count[samp]['ttll'+flav] += 1
+        if ch.Haa4b_dilep_charge == 0 and ch.Haa4b_dilep_mass > 12 and ch.Haa4b_nJetBtag >= 1:
+            if ch.Haa4b_cat_Zll == 0 and ch.Haa4b_cat_3l == 0:
+                count[samp]['ttll'+flav] += 1
         ## 2lSS, 3l, other
         if ch.Haa4b_cat_2lSS == 1:
             count[samp]['2lSS'] += 1
