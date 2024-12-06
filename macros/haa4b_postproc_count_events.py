@@ -9,9 +9,10 @@ import ROOT as R
 
 R.gROOT.SetBatch(True)  ## Don't display histograms or canvases when drawn
 
-MAX_EVT = -1  ## Maximum number of events to process per MC sample
-PRT_EVT = 10000    ## Print every Nth event while processing
-DEBUG   = False
+MAX_EVT = -1     ## Maximum number of events to process per MC sample
+PRT_EVT = 10000  ## Print every Nth event while processing
+VERBOSE = False
+DEBUG   = [] ## [luminosityBlock, event] to debug
 
 ## Location of postprocessed input files
 IN_DIR = '/eos/cms/store/user/abrinke1/NanoPost/hadd/'
@@ -59,13 +60,18 @@ for samp in SAMPS:
 
         ch.GetEntry(iEvt)
 
-        if DEBUG: print('tagHaa4b_v1 = %.4f, cat_idx = %d, passFilters = %d' % (ch.Haa4b_FatH_tagHaa4b_v1,
-                                                                                ch.Haa4b_cat_idx,
-                                                                                ch.Haa4b_passFilters))
-        if ch.Haa4b_FatH_tagHaa4b_v1 < 0.975: continue  ## Minimum Haa4b vs. QCD cut, WP60
-        if ch.Haa4b_cat_idx <= 0:             continue  ## Must pass at least one category
-        if ch.Haa4b_passFilters != 1:         continue  ## Must pass event filters
-        if DEBUG: print('Passed initial selection!')
+        if len(DEBUG) > 0:
+            if ch.luminosityBlock != DEBUG[0] or ch.event != DEBUG[1]:
+                continue
+            print('Starting LS = %d, event = %d' % (ch.luminosityBlock, ch.event))
+
+        if VERBOSE: print('tagHaa4b_v1 = %.4f, cat_idx = %d, passFilters = %d' % (ch.Haa4b_FatH_tagHaa4b_v1,
+                                                                                  ch.Haa4b_cat_idx,
+                                                                                  ch.Haa4b_passFilters))
+        if ch.Haa4b_FatH_tagHaa4b_v1 < 0.975:    continue  ## Minimum Haa4b vs. QCD cut, WP60
+        if ch.Haa4b_isHad + ch.Haa4b_isLep != 1: continue  ## AK8 Higgs candidate with no overlapping trigger lepton
+        if ch.Haa4b_passFilters != 1:            continue  ## Must pass event filters
+        if VERBOSE: print('Passed initial selection!')
 
         ## gg0l
         if ch.Haa4b_cat_gg0l == 1 and ch.Haa4b_FatH_tagHaa4b_v1 > 0.992 and \
@@ -125,6 +131,10 @@ for samp in SAMPS:
         if ch.Haa4b_cat_other == 1:
             count[samp]['other'] += 1
 
+        if len(DEBUG) > 0:
+            if ch.luminosityBlock != DEBUG[0] or ch.event != DEBUG[1]:
+                print('Finished LS = %d, event = %d' % (ch.luminosityBlock, ch.event))
+                break
     ## End loop: for iEvt in range(nEntries)
 
     print('\n*** Finished looking at sample %s ***\n\n' % samp)
