@@ -864,6 +864,9 @@ class Haa4bObjectSelectionProducer(Module):
 
         ## Logic for triggers only available part of the year (2018)
         trig = {}
+        try: trig['L1_HTT360er'] = \
+           event.L1_HTT360er
+        except: trig['L1_HTT360er'] = False
         try: trig['HLT_DoublePFJets116MaxDeta1p6_DoubleCaloBTagDeepCSV_p71'] = \
            event.HLT_DoublePFJets116MaxDeta1p6_DoubleCaloBTagDeepCSV_p71
         except: trig['HLT_DoublePFJets116MaxDeta1p6_DoubleCaloBTagDeepCSV_p71'] = False
@@ -884,11 +887,11 @@ class Haa4bObjectSelectionProducer(Module):
 
         self.out.fillBranch("Haa4b_trigFat",  ( ((event.HLT_PFJet500 or event.HLT_AK8PFJet500 or event.HLT_AK8PFJet400_TrimMass30 or
                                                   trig['HLT_AK8PFJet330_TrimMass30_PFAK8BoostedDoubleB_np4']) and (event.L1_SingleJet180)) or
-                                                ((event.HLT_AK8PFHT800_TrimMass50 or event.HLT_PFHT1050) and (event.L1_SingleJet180 or event.L1_HTT360er)) ) )
+                                                ((event.HLT_AK8PFHT800_TrimMass50 or event.HLT_PFHT1050) and (event.L1_SingleJet180 or trig['L1_HTT360er'])) ) )
         self.out.fillBranch("Haa4b_trigBtag", ( (trig['HLT_DoublePFJets116MaxDeta1p6_DoubleCaloBTagDeepCSV_p71'] and
                                                  (event.L1_DoubleJet112er2p3_dEta_Max1p6 or event.L1_DoubleJet150er2p5)) or
                                                 (event.HLT_PFHT330PT30_QuadPFJet_75_60_45_40_TriplePFBTagDeepCSV_4p5 and
-                                                 (event.L1_HTT320er or event.L1_HTT360er or event.L1_HTT400er or event.L1_ETT2000 or
+                                                 (event.L1_HTT320er or trig['L1_HTT360er'] or event.L1_HTT400er or event.L1_ETT2000 or
                                                   event.L1_HTT320er_QuadJet_70_55_40_40_er2p4 or
                                                   event.L1_HTT320er_QuadJet_80_60_er2p1_45_40_er2p3)) ) )
         self.out.fillBranch("Haa4b_trigVBF", ( (trig['HLT_QuadPFJet103_88_75_15_PFBTagDeepCSV_1p3_VBF2'] or
