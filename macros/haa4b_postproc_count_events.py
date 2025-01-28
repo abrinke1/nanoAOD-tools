@@ -10,7 +10,7 @@ import ROOT as R
 R.gROOT.SetBatch(True)  ## Don't display histograms or canvases when drawn
 
 MAX_EVT = -1     ## Maximum number of events to process per MC sample
-PRT_EVT = 10000  ## Print every Nth event while processing
+PRT_EVT = 10000000  ## Print every Nth event while processing
 VERBOSE = False
 DEBUG   = [] ## [luminosityBlock, event] to debug
 
@@ -18,13 +18,13 @@ DEBUG   = [] ## [luminosityBlock, event] to debug
 IN_DIR = '/eos/cms/store/user/abrinke1/NanoPost/hadd/'
 ## Haa4b selection categories, as of end-of-summer 2024
 CATS = ['gg0lHi','gg0lLo','VBFjjHi','VBFjjLo','ZvvHi','ZvvLo','Vjj','ttHad',
-        'WlvHi_m','WlvHi_e','WlvLo_m','WlvLo_e','Zll_m','Zll_e',
-        'ttbblv_m','ttbblv_e','ttblv_m','ttblv_e','ttll_m','ttll_e',
-        '2lSS','3l','other']
+       'WlvHi_m','WlvHi_e','WlvLo_m','WlvLo_e','Zll_m','Zll_e',
+       'ttbblv_m','ttbblv_e','ttblv_m','ttblv_e','ttll_m','ttll_e',
+       '2lSS','3l','other']
 ## MC samples to test
-SAMPS = ['GluGluH_M-15','GluGluH_M-25','GluGluH_M-40','GluGluH_M-55','VBFH_M-30',
-         'WH_M-20','ZH_M-20','ZH_M-40','TTH_M-15','TTH_M-55']
-#SAMPS = ['GluGluH_M-15']
+#SAMPS = ['GluGluH_M-15','GluGluH_M-25','GluGluH_M-40','GluGluH_M-55','VBFH_M-30',
+#         'WH_M-20','ZH_M-20','ZH_M-40','TTH_M-15','TTH_M-55']
+SAMPS = ['GluGluH_M-25']
 
 
 ## Count passing events for each sample in each category
