@@ -220,13 +220,6 @@ class Haa4bObjectSelectionProducer(Module):
         self.out.branch("Haa4b_isLep",      "O")
         self.out.branch("Haa4b_isMu",       "O")
         self.out.branch("Haa4b_isEle",      "O")
-        self.out.branch("Haa4b_trigFat",    "O")
-        self.out.branch("Haa4b_trigBtag",   "O")
-        self.out.branch("Haa4b_trigVBF",    "O")
-        self.out.branch("Haa4b_trigMET",    "O")
-        self.out.branch("Haa4b_trigMu",     "O")
-        self.out.branch("Haa4b_trigEle",    "O")
-        self.out.branch("Haa4b_passFilters","O")
         
 
     def endFile(self, inputFile, outputFile, inputTree, wrappedOutputTree):
@@ -861,54 +854,6 @@ class Haa4bObjectSelectionProducer(Module):
         self.out.fillBranch("Haa4b_isLep", (iCandH >= 0 and nTrigLeps >= 1 and nTrigLepsOvlpH == 0))
         self.out.fillBranch("Haa4b_isMu",  (iCandH >= 0 and len(iTrigMus) >= 1 and nTrigLepsOvlpH == 0))
         self.out.fillBranch("Haa4b_isEle", (iCandH >= 0 and len(iTrigEles) >= 1 and len(iTrigMus) == 0 and nTrigLepsOvlpH == 0))
-
-        ## Logic for triggers only available part of the year (2018)
-        trig = {}
-        try: trig['L1_HTT360er'] = \
-           event.L1_HTT360er
-        except: trig['L1_HTT360er'] = False
-        try: trig['HLT_DoublePFJets116MaxDeta1p6_DoubleCaloBTagDeepCSV_p71'] = \
-           event.HLT_DoublePFJets116MaxDeta1p6_DoubleCaloBTagDeepCSV_p71
-        except: trig['HLT_DoublePFJets116MaxDeta1p6_DoubleCaloBTagDeepCSV_p71'] = False
-        try: trig['HLT_QuadPFJet103_88_75_15_PFBTagDeepCSV_1p3_VBF2'] = \
-           event.HLT_QuadPFJet103_88_75_15_PFBTagDeepCSV_1p3_VBF2
-        except: trig['HLT_QuadPFJet103_88_75_15_PFBTagDeepCSV_1p3_VBF2'] = False
-        try: trig['HLT_QuadPFJet103_88_75_15_DoublePFBTagDeepCSV_1p3_7p7_VBF1'] = \
-           event.HLT_QuadPFJet103_88_75_15_DoublePFBTagDeepCSV_1p3_7p7_VBF1
-        except: trig['HLT_QuadPFJet103_88_75_15_DoublePFBTagDeepCSV_1p3_7p7_VBF1'] = False
-        try: trig['HLT_PFMET110_PFMHT110_IDTight_CaloBTagDeepCSV_3p1'] = \
-           event.HLT_PFMET110_PFMHT110_IDTight_CaloBTagDeepCSV_3p1
-        except: trig['HLT_PFMET110_PFMHT110_IDTight_CaloBTagDeepCSV_3p1'] = False
-        try: trig['HLT_AK8PFJet330_TrimMass30_PFAK8BoostedDoubleB_np4'] = \
-           event.HLT_AK8PFJet330_TrimMass30_PFAK8BoostedDoubleB_np4
-        except: trig['HLT_AK8PFJet330_TrimMass30_PFAK8BoostedDoubleB_np4'] = False
-        ## End logic for triggers only available part of the year (2018)
-
-
-        self.out.fillBranch("Haa4b_trigFat",  ( ((event.HLT_PFJet500 or event.HLT_AK8PFJet500 or event.HLT_AK8PFJet400_TrimMass30 or
-                                                  trig['HLT_AK8PFJet330_TrimMass30_PFAK8BoostedDoubleB_np4']) and (event.L1_SingleJet180)) or
-                                                ((event.HLT_AK8PFHT800_TrimMass50 or event.HLT_PFHT1050) and (event.L1_SingleJet180 or trig['L1_HTT360er'])) ) )
-        self.out.fillBranch("Haa4b_trigBtag", ( (trig['HLT_DoublePFJets116MaxDeta1p6_DoubleCaloBTagDeepCSV_p71'] and
-                                                 (event.L1_DoubleJet112er2p3_dEta_Max1p6 or event.L1_DoubleJet150er2p5)) or
-                                                (event.HLT_PFHT330PT30_QuadPFJet_75_60_45_40_TriplePFBTagDeepCSV_4p5 and
-                                                 (event.L1_HTT320er or trig['L1_HTT360er'] or event.L1_HTT400er or event.L1_ETT2000 or
-                                                  event.L1_HTT320er_QuadJet_70_55_40_40_er2p4 or
-                                                  event.L1_HTT320er_QuadJet_80_60_er2p1_45_40_er2p3)) ) )
-        self.out.fillBranch("Haa4b_trigVBF", ( (trig['HLT_QuadPFJet103_88_75_15_PFBTagDeepCSV_1p3_VBF2'] or
-                                                trig['HLT_QuadPFJet103_88_75_15_DoublePFBTagDeepCSV_1p3_7p7_VBF1']) and
-                                               (event.L1_TripleJet_95_75_65_DoubleJet_75_65_er2p5 or
-                                                event.L1_HTT320er or event.L1_SingleJet180) ) )
-        self.out.fillBranch("Haa4b_trigMET", ( ((event.HLT_PFMET120_PFMHT120_IDTight_PFHT60 or event.HLT_PFMETNoMu120_PFMHTNoMu120_IDTight_PFHT60) and
-                                                (event.L1_ETMHF90_HTT60er or event.L1_ETMHF100_HTT60er or event.L1_ETMHF110_HTT60er)) or
-                                               ((trig['HLT_PFMET110_PFMHT110_IDTight_CaloBTagDeepCSV_3p1'] or
-                                                 event.HLT_PFMETTypeOne200_HBHE_BeamHaloCleaned or event.HLT_PFMETTypeOne140_PFMHT140_IDTight) and
-                                                (event.L1_ETMHF100 or event.L1_ETMHF110 or event.L1_ETMHF120 or event.L1_ETMHF130)) ) )
-        self.out.fillBranch("Haa4b_trigMu",  ( (event.HLT_IsoMu24 or event.HLT_Mu50) and (event.L1_SingleMu22 or event.L1_SingleMu25) ) )
-        self.out.fillBranch("Haa4b_trigEle", ( (event.HLT_Ele32_WPTight_Gsf or event.HLT_Ele50_CaloIdVT_GsfTrkIdT_PFJet165 or
-                                                event.HLT_Ele115_CaloIdVT_GsfTrkIdT or event.HLT_Ele35_WPTight_Gsf_L1EGMT) ) )
-        self.out.fillBranch("Haa4b_passFilters", (event.Flag_goodVertices and event.Flag_globalSuperTightHalo2016Filter and event.Flag_HBHENoiseFilter and
-                                                  event.Flag_HBHENoiseIsoFilter and event.Flag_eeBadScFilter and event.Flag_BadPFMuonFilter and
-                                                  event.Flag_BadPFMuonDzFilter and event.Flag_ecalBadCalibFilter and event.Flag_EcalDeadCellTriggerPrimitiveFilter) )
 
 
         ############
