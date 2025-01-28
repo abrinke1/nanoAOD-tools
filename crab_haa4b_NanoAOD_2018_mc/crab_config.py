@@ -30,7 +30,7 @@ config.Data.inputDataset = 'DUMMY'
 
 config.General.requestName = 'DUMMY'
 config.Data.outputDatasetTag = 'r1'
-config.Data.publication = True
+config.Data.publication = False
 
 config.Data.inputDBS = 'global'
 config.Data.splitting = 'EventAwareLumiBased' # 'Automatic' 'LumiBased' 'FileBased' 'EventAwareLumiBased'
