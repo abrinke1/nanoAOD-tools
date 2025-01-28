@@ -56,13 +56,13 @@ if SAMP == 'HtoAA_MH-125_MA-20':
     in_files = ['file:'+in_dir+'003A1234-0E1D-154A-9704-9406B61CB642.root',
                 'file:'+in_dir+'0B5221FE-B9CF-A449-A523-33FFCAF65CD2.root',
                 'file:'+in_dir+'0CBDE505-6EE4-B44D-97B2-7CA3AB7C9E5F.root',
-                'file:'+in_dir+'0E2F71F8-7E51-BC4B-A159-7CD4E2732F60.root'],
+                'file:'+in_dir+'0E2F71F8-7E51-BC4B-A159-7CD4E2732F60.root']
 if SAMP == 'HtoAA_MH-125_MA-50':
     in_dir = top_dir+'SUSY_GluGluH_01J_HToAATo4B_Pt150_M-50_TuneCP5_13TeV_madgraph_pythia8/RunIISummer20UL18/'
     in_files = ['file:'+in_dir+'0D9E5EE4-84D3-3243-BCAA-DDF544A6EECB.root',
                 'file:'+in_dir+'AACF68BE-FF9A-D74A-A59E-367D2AD1ADD7.root',
                 'file:'+in_dir+'1D31F4C8-1F60-FC45-95A0-B96FB98DE0B2.root',
-                'file:'+in_dir+'AE9EE40B-E99B-674C-9313-C90A98534761.root'],
+                'file:'+in_dir+'AE9EE40B-E99B-674C-9313-C90A98534761.root']
 if SAMP == 'QCD_BGen_HT700to1000':
     in_dir = top_dir+'QCD_HT700to1000_BGenFilter_TuneCP5_13TeV-madgraph-pythia8/RunIISummer20UL18/'
     in_files = ['file:'+in_dir+'04193046-685A-9541-881A-AF38A95F79BA.root',
@@ -91,7 +91,7 @@ if SAMP == 'ZJetsToQQ_HT-600to800':
 
 # Input source
 process.source = cms.Source("PoolSource",
-    fileNames = cms.untracked.vstring(in_files[0]),
+    fileNames = cms.untracked.vstring(in_files),
     secondaryFileNames = cms.untracked.vstring()
 )
 
@@ -189,3 +189,6 @@ process = PFnano_customizeMC_Haa4b(process, SKIM_FAT_SEL)
 from Configuration.StandardSequences.earlyDeleteSettings_cff import customiseEarlyDelete
 process = customiseEarlyDelete(process)
 # End adding early deletion
+
+process.options.numberOfThreads=cms.untracked.uint32(4)
+process.options.numberOfStreams=cms.untracked.uint32(0)
