@@ -74,6 +74,8 @@ def eventLoop(
     for ie, i in enumerate(range(entries) if eventRange == None else eventRange):
         if maxEvents > 0 and ie >= maxEvents:
             break
+        if (ie % 1000) == 0:
+            print('Event %d / %d' % (ie, entries))
         e = Event(inputTree, i)
         clearExtraBranches(inputTree)
         doneEvents += 1
