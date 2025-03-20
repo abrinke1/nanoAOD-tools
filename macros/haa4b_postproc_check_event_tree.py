@@ -10,21 +10,21 @@ import ROOT as R
 R.gROOT.SetBatch(True)  ## Don't display histograms or canvases when drawn
 
 ## Location of postprocessed input files
+YEAR = '2017'
 IS_DATA = False
 HADD_ONLY = False
 EVENT_TREE = False  ## Use 'Event' tree even for MC (slower, counts only "passing" / saved events)
-IN_DIR = '/eos/cms/store/group/phys_susy/HToaaTo4b/NanoAOD/2018/%s/PNet_v2_2024_11_22/' % ('data' if IS_DATA else 'MC')
+VERBOSE = False
+FILTER = 'ST_t-channel_top_5f_InclusiveDecays'  ## Use None to check all datasets
+IN_DIR = '/eos/cms/store/group/phys_susy/HToaaTo4b/NanoAOD/%s/%s/PNet_v2_2024_11_22/' % (YEAR, 'data' if IS_DATA else 'MC')
 
 ## Loop over datasets
-#print(IN_DIR)
+if VERBOSE: print(IN_DIR)
 for dset in os.listdir(IN_DIR):
-    #if dset == 'JetHT' or dset == 'EGamma': continue
-    if not 'DYJetsToLL_M-50_HT-200to400' in dset: continue
-    #if (not 'HToAATo4B_Pt150_M-' in dset or not 'VBFH' in dset): continue
-    #print(IN_DIR+dset+'/')
+    if FILTER and not (FILTER == 'None') and not (FILTER in dset): continue
+    if VERBOSE: print(IN_DIR+dset+'/')
     ## Loop over processings / eras
     for proc in os.listdir(IN_DIR+dset+'/'):
-        #if not (dset+'/'+proc == 'EGamma/r1_Run2018D'): continue
         print('\nStarting to look at '+dset+'/'+proc)
         hadd_sum = 0
         hadd_neg = 0
@@ -36,7 +36,7 @@ for dset in os.listdir(IN_DIR):
         skim_files = 0
         nano_empty = 0
         skim_empty = 0
-        #print(IN_DIR+dset+'/'+proc+'/')
+        if VERBOSE: print(IN_DIR+dset+'/'+proc+'/')
         ## Loop over crab date tags (and hadded files)
         for crab in os.listdir(IN_DIR+dset+'/'+proc+'/'):
             ## Count events in hadded files
@@ -71,7 +71,7 @@ for dset in os.listdir(IN_DIR):
                 del chain_hadd
                 continue
             if HADD_ONLY: continue
-            #print(IN_DIR+dset+'/'+proc+'/'+crab+'/')
+            if VERBOSE: print(IN_DIR+dset+'/'+proc+'/'+crab+'/')
             if crab.endswith('.sh'): continue
             ## Loop over sub-directories
             for subd in os.listdir(IN_DIR+dset+'/'+proc+'/'+crab+'/'):
