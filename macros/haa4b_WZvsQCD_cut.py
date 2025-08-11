@@ -10,7 +10,7 @@ import ROOT as R
 
 R.gROOT.SetBatch(True)  ## Don't display histograms or canvases when drawn
 
-MAX_EVT = -1  ## Maximum number of events to process per MC sample
+MAX_EVT = -1     ## Maximum number of events to process per MC sample
 PRT_EVT = 10000  ## Print every Nth event while processing
 DEBUG   = False
 NBINS   = 10000  ## Number of bins in histogram
@@ -86,8 +86,10 @@ for year in YEARS:
             iWZ = hst[year]['WZ'].Integral()
             nWZ = hst[year]['WZ'].Integral(iX, NBINS)
             mWZ = hst[year]['WZ'].Integral(iX+1, NBINS)
+            lWZ = hst[year]['WZ'].Integral(int(cutW*NBINS)+1, NBINS)
             cutWZn = hst[year]['WZ'].GetBinLowEdge(iX)
             cutWZm = hst[year]['WZ'].GetBinLowEdge(iX+1)
+            print('             WZvsQCD cut = %.5f, efficiency = %.3f%% (%d / %d)' % (cutW, 100.0*lWZ/iWZ, lWZ, iWZ))
             print('             WZvsQCD cut = %.5f, efficiency = %.3f%% (%d / %d)' % (cutWZn, 100.0*nWZ/iWZ, nWZ, iWZ))
             print('             WZvsQCD cut = %.5f, efficiency = %.3f%% (%d / %d)' % (cutWZm, 100.0*mWZ/iWZ, mWZ, iWZ))
             break
@@ -96,20 +98,23 @@ for year in YEARS:
 
 print('\n*** All done!!! ***\n\n')
 
-
 ## Results from AWB 2025.08.11
 # In year 2016APV, WvsQCD cut = 0.974, efficiency = 67.11% (5105 / 7607)
+#               WZvsQCD cut = 0.97400, efficiency = 77.218% (5874 / 7607)
 #           *** WZvsQCD cut = 0.98430, efficiency = 67.359% (5124 / 7607)
 #               WZvsQCD cut = 0.98440, efficiency = 66.649% (5070 / 7607)
 
 # In year 2016, WvsQCD cut = 0.974, efficiency = 68.17% (5235 / 7679)
+#            WZvsQCD cut = 0.97400, efficiency = 78.018% (5991 / 7679)
 #        *** WZvsQCD cut = 0.98430, efficiency = 68.512% (5261 / 7679)   
 #            WZvsQCD cut = 0.98440, efficiency = 67.769% (5204 / 7679)
 
 # In year 2017, WvsQCD cut = 0.978, efficiency = 65.83% (8883 / 13494)
+#            WZvsQCD cut = 0.97800, efficiency = 75.056% (10128 / 13494)
 #        *** WZvsQCD cut = 0.98580, efficiency = 66.066% (8915 / 13494)
 #            WZvsQCD cut = 0.98590, efficiency = 65.288% (8810 / 13494)
 
 # In year 2018, WvsQCD cut = 0.980, efficiency = 63.50% (20393 / 32117)
+#            WZvsQCD cut = 0.98000, efficiency = 72.581% (23311 / 32117)
 #        *** WZvsQCD cut = 0.98730, efficiency = 63.994% (20553 / 32117)
 #            WZvsQCD cut = 0.98740, efficiency = 63.172% (20289 / 32117)
