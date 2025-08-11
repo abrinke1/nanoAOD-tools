@@ -95,3 +95,21 @@ for year in YEARS:
 ## End loop: for year in YEARS
 
 print('\n*** All done!!! ***\n\n')
+
+
+## Results from AWB 2025.08.11
+# In year 2016APV, WvsQCD cut = 0.974, efficiency = 67.11% (5105 / 7607)
+#           *** WZvsQCD cut = 0.98430, efficiency = 67.359% (5124 / 7607)
+#               WZvsQCD cut = 0.98440, efficiency = 66.649% (5070 / 7607)
+
+# In year 2016, WvsQCD cut = 0.974, efficiency = 68.17% (5235 / 7679)
+#        *** WZvsQCD cut = 0.98430, efficiency = 68.512% (5261 / 7679)   
+#            WZvsQCD cut = 0.98440, efficiency = 67.769% (5204 / 7679)
+
+# In year 2017, WvsQCD cut = 0.978, efficiency = 65.83% (8883 / 13494)
+#        *** WZvsQCD cut = 0.98580, efficiency = 66.066% (8915 / 13494)
+#            WZvsQCD cut = 0.98590, efficiency = 65.288% (8810 / 13494)
+
+# In year 2018, WvsQCD cut = 0.980, efficiency = 63.50% (20393 / 32117)
+#        *** WZvsQCD cut = 0.98730, efficiency = 63.994% (20553 / 32117)
+#            WZvsQCD cut = 0.98740, efficiency = 63.172% (20289 / 32117)
