@@ -24,12 +24,14 @@ IN_FILES = 'SUSY_GluGluH_01J_HToAATo4B_Pt150_M-mA_TuneCP5_13TeV_madgraph_pythia8
 
 #YEARS  = ['2016APV','2016','2017','2018']
 YEARS  = ['2018']
-#MASSES = ['12']+[str(15+5*i) for i in range(10)]
-MASSES = ['12']+[str(15+5*i) for i in range(5)]  ## Through 35 GeV
-#MASSES = ['15']
+MASSES = ['12']+[str(15+5*i) for i in range(10)]
+#MASSES = ['12']+[str(15+5*i) for i in range(5)]  ## Through 35 GeV
+#MASSES = ['35']
 
 ## Histograms for mass(a) distributions
 hst = {}
+## Thresholds for Lo/Med/Hi
+thr = {}
 ## Count events passing different selection cuts
 count = {}
 ## Color codes for histograms
@@ -50,14 +52,20 @@ if not os.path.exists('plots/png/haa4b_mA_calib'):
 for year in YEARS:
     print('\n\n*** Beginning to look at year %s ***\n' % year)
     hst[year] = {}
+    thr[year] = {}
     count[year] = {}
     for mA in MASSES:
         for var in ['jms','jes','jrs','sjms','sjes','sjrs']:
+            ## 2D jet/sub-jet mass and energy and mass/pT scale histograms
+            hst[year]['mA_%s_%s2vs1' % (mA, var)] = R.TH2D('h_2D_mA_%s_%s_%s' % (mA, var, year),
+                                                           'm(a) = %s, %s (%s)' % (mA, var, year),
+                                                           60, 0, 3.0, 60, 0, 3.0)
             for idx in ['1','2']:
                 ## 1D jet/sub-jet mass and energy and mass/pT scale histograms
                 hst[year]['mA_%s_%s%s' % (mA, var, idx)] = R.TH1D('h_1D_mA_%s_%s%s_%s' % (mA, var, idx, year),
                                                                   'm(a) = %s, %s%s (%s)' % (mA, var, idx, year),
                                                                   60, 0, 3.0)
+                thr[year]['mA_%s_%s%s' % (mA, var, idx)] = [-1,-1]
             for js1 in ['Hi','Med','Lo']:
                 for js2 in ['Hi','Med','Lo']:
                     ## Categorize by overlapping AK4 jet ("j") or AK8 soft-drop sub-jet ("sj")
@@ -65,7 +73,7 @@ for year in YEARS:
                     cat = '%s_%s1_%s_%s2_%s' % (mA, var, js1, var, js2)
                     hst[year]['mA_'+cat] = R.TH1D('h_1D_mA_'+cat+'_'+year,
                                                   'm(a) = %s, %s1 %s %s2 %s (%s)' % (mA, var, js1, var, js2, year),
-                                                  int(mA)*5, 5, float(mA)+max(5, int(float(mA)/3)))
+                                                  min(int(mA)*5, 70), 5, min(float(mA)+max(5, int(float(mA)/3)), 75))
                     hst[year]['mA_'+cat].SetLineColor(color['%s_%s' % (js1, js2)])
     ## End loop: for js1 in ['Hi','Med','Lo']
 
@@ -112,12 +120,11 @@ for year in YEARS:
         iA2 = ch.GEN_a2_idx
         if iA1 < 0 or iA2 < 0: continue
         count[year]['iA'] += 1
-        mA1  = int(ch.GenPart_mass[iA1])
-        mA2  = int(ch.GenPart_mass[iA2])
-        ptA1 = ch.GenPart_pt[iA1]
-        ptA2 = ch.GenPart_pt[iA2]
-        assert(mA1 == mA2)
-        assert(str(mA1) in MASSES)
+        mAs  = [int(ch.GenPart_mass[iA1]), int(ch.GenPart_mass[iA2])]
+        ptAs = [ch.GenPart_pt[iA1], ch.GenPart_pt[iA2]]
+        assert(mAs[0] == mAs[1])
+        assert(str(mAs[0]) in MASSES)
+        mA = mAs[0]
 
         ## Look for two highest-pT AK4 jets overlapping Higgs AK8
         jmass = []
@@ -141,62 +148,81 @@ for year in YEARS:
             sjmass.append(ch.SubJet_mass[sj2])
             sjpt  .append(ch.SubJet_pt[sj2])
 
+        #########################################################################
         ## Fill histograms based on relation between AK4 jet RECO and GEN mass/pT
         if len(jmass) == 2:
             count[year]['2j'] += 1
-            jms1r = jmass[0] / mA1
-            jms2r = jmass[1] / mA2
-            jes1r = jpt[0] / ptA1
-            jes2r = jpt[1] / ptA2
-            jrs1r = jms1r / jes1r
-            jrs2r = jms2r / jes2r
-            jms1 = 'Hi' if jms1r > 1.80 else 'Lo' if jms1r < 1.20 else 'Med'
-            jms2 = 'Hi' if jms2r > 1.25 else 'Lo' if jms2r < 0.75 else 'Med'
-            jes1 = 'Hi' if jes1r > 1.05 else 'Lo' if jes1r < 0.85 else 'Med'
-            jes2 = 'Hi' if jes2r > 1.00 else 'Lo' if jes2r < 0.75 else 'Med'
-            jrs1 = 'Hi' if jrs1r > 1.90 else 'Lo' if jrs1r < 1.30 else 'Med'
-            jrs2 = 'Hi' if jrs2r > 1.35 else 'Lo' if jrs2r < 0.95 else 'Med'
-            cat_jes = '%d_jes1_%s_jes2_%s' % (mA1, jes1, jes2)
-            cat_jms = '%d_jms1_%s_jms2_%s' % (mA1, jms1, jms2)
-            cat_jrs = '%d_jrs1_%s_jrs2_%s' % (mA1, jrs1, jrs2)
-            hst[year]['mA_'+cat_jes].Fill(ch.FatJet_PNet_34massAa[iH])
-            hst[year]['mA_'+cat_jms].Fill(ch.FatJet_PNet_34massAa[iH])
-            hst[year]['mA_'+cat_jrs].Fill(ch.FatJet_PNet_34massAa[iH])
-            hst[year]['mA_%s_jms1' % mA1].Fill(jms1r)
-            hst[year]['mA_%s_jms2' % mA1].Fill(jms2r)
-            hst[year]['mA_%s_jes1' % mA1].Fill(jes1r)
-            hst[year]['mA_%s_jes2' % mA1].Fill(jes2r)
-            hst[year]['mA_%s_jrs1' % mA1].Fill(jrs1r)
-            hst[year]['mA_%s_jrs2' % mA1].Fill(jrs2r)
-
             
+            ## Fill base jms/jes/jrs histograms
+            jsr = {'jms':[], 'jes':[], 'jrs':[]}
+            for xj in [0,1]:
+                jsr['jms'].append(jmass[xj] / mAs[xj])
+                jsr['jes'].append( jpt[xj] / ptAs[xj])
+                jsr['jrs'].append(jsr['jms'][xj] / jsr['jes'][xj])
+                for var in ['jms','jes','jrs']:
+                    key = 'mA_%s_%s%d' % (mA, var, xj+1)
+                    hst[year][key].Fill(min(jsr[var][xj], 2.999))
+                    if xj == 1:
+                        key2 = 'mA_%s_%s2vs1' % (mA, var)
+                        hst[year][key2].Fill(min(jsr[var][0], 2.999), min(jsr[var][1], 2.999))
+                    ## Update threshold every 1000 events
+                    if (int(hst[year][key].Integral()) % 1000) == 0:
+                        p = np.array([0.25,0.75])
+                        q = np.array([0.,0.])
+                        hst[year][key].GetQuantiles(2, q, p)
+                        thr[year][key] = [q[0], q[1]]
+                        if DEBUG: print('Updated %s thresholds to [%.4f, %.4f]' % (key, q[0], q[1]))
+
+            ## Fill Hi/Lo/Med plots
+            for var in ['jms','jes','jrs']:
+                ## Fill plots, but only if thresholds are set (after first 1000 events)
+                thrL = [thr[year]['mA_%s_%s%d' % (mA, var, xj)][0] for xj in [1,2]]
+                thrH = [thr[year]['mA_%s_%s%d' % (mA, var, xj)][1] for xj in [1,2]]
+                if thrL[0] < 0 or thrL[1] < 0 or thrH[0] < 0 or thrH[1] < 0: continue
+                js1 = 'Hi' if jsr[var][0] > thrH[0] else 'Lo' if jsr[var][0] < thrL[0] else 'Med'
+                js2 = 'Hi' if jsr[var][1] > thrH[1] else 'Lo' if jsr[var][1] < thrL[1] else 'Med'
+                cat = '%d_%s1_%s_%s2_%s' % (mA, var, js1, var, js2)
+                hst[year]['mA_'+cat].Fill(ch.FatJet_PNet_34massAa[iH])
+        ## End conditional: if len(jmass) == 2
+
+
+        ########################################################################
         ## Fill histograms based on relation between subjet RECO and GEN mass/pT
         if len(sjmass) == 2:
             count[year]['2sj'] += 1
-            sjms1r = sjmass[0] / mA1
-            sjms2r = sjmass[1] / mA2
-            sjes1r = sjpt[0] / ptA1
-            sjes2r = sjpt[1] / ptA2
-            sjrs1r = sjms1r / sjes1r
-            sjrs2r = sjms2r / sjes2r
-            sjms1 = 'Hi' if sjms1r > 2.00 else 'Lo' if sjms1r < 1.20 else 'Med'
-            sjms2 = 'Hi' if sjms2r > 1.35 else 'Lo' if sjms2r < 0.80 else 'Med'
-            sjes1 = 'Hi' if sjes1r > 1.05 else 'Lo' if sjes1r < 0.85 else 'Med'
-            sjes2 = 'Hi' if sjes2r > 1.05 else 'Lo' if sjes2r < 0.80 else 'Med'
-            sjrs1 = 'Hi' if sjrs1r > 2.00 else 'Lo' if sjrs1r < 1.25 else 'Med'
-            sjrs2 = 'Hi' if sjrs2r > 1.40 else 'Lo' if sjrs2r < 0.95 else 'Med'
-            cat_sjes = '%d_sjes1_%s_sjes2_%s' % (mA1, sjes1, sjes2)
-            cat_sjms = '%d_sjms1_%s_sjms2_%s' % (mA1, sjms1, sjms2)
-            cat_sjrs = '%d_sjrs1_%s_sjrs2_%s' % (mA1, sjrs1, sjrs2)
-            hst[year]['mA_'+cat_sjes].Fill(ch.FatJet_PNet_34massAa[iH])
-            hst[year]['mA_'+cat_sjms].Fill(ch.FatJet_PNet_34massAa[iH])
-            hst[year]['mA_'+cat_sjrs].Fill(ch.FatJet_PNet_34massAa[iH])
-            hst[year]['mA_%s_sjms1' % mA1].Fill(sjms1r)
-            hst[year]['mA_%s_sjms2' % mA1].Fill(sjms2r)
-            hst[year]['mA_%s_sjes1' % mA1].Fill(sjes1r)
-            hst[year]['mA_%s_sjes2' % mA1].Fill(sjes2r)
-            hst[year]['mA_%s_sjrs1' % mA1].Fill(sjrs1r)
-            hst[year]['mA_%s_sjrs2' % mA1].Fill(sjrs2r)
+
+            ## Fill base jms/jes/jrs histograms
+            sjsr = {'sjms':[], 'sjes':[], 'sjrs':[]}
+            for xj in [0,1]:
+                sjsr['sjms'].append(sjmass[xj] / mAs[xj])
+                sjsr['sjes'].append( sjpt[xj] / ptAs[xj])
+                sjsr['sjrs'].append(sjsr['sjms'][xj] / sjsr['sjes'][xj])
+                for var in ['sjms','sjes','sjrs']:
+                    key = 'mA_%s_%s%d' % (mA, var, xj+1)
+                    hst[year][key].Fill(min(sjsr[var][xj], 2.999))
+                    if xj == 1:
+                        key2 = 'mA_%s_%s2vs1' % (mA, var)
+                        hst[year][key2].Fill(min(sjsr[var][0], 2.999), min(sjsr[var][1], 2.999))
+                    ## Update threshold every 1000 events
+                    if (int(hst[year][key].Integral()) % 1000) == 0:
+                        p = np.array([0.25,0.75])
+                        q = np.array([0.,0.])
+                        hst[year][key].GetQuantiles(2, q, p)
+                        thr[year][key] = [q[0], q[1]]
+                        if DEBUG: print('Updated %s thresholds to [%.4f, %.4f]' % (key, q[0], q[1]))
+
+            ## Fill Hi/Lo/Med plots
+            for var in ['sjms','sjes','sjrs']:
+                ## Fill plots, but only if thresholds are set (after first 1000 events)
+                thrL = [thr[year]['mA_%s_%s%d' % (mA, var, xj)][0] for xj in [1,2]]
+                thrH = [thr[year]['mA_%s_%s%d' % (mA, var, xj)][1] for xj in [1,2]]
+                if thrL[0] < 0 or thrL[1] < 0 or thrH[0] < 0 or thrH[1] < 0: continue
+                sjs1 = 'Hi' if sjsr[var][0] > thrH[0] else 'Lo' if sjsr[var][0] < thrL[0] else 'Med'
+                sjs2 = 'Hi' if sjsr[var][1] > thrH[1] else 'Lo' if sjsr[var][1] < thrL[1] else 'Med'
+                cat = '%d_%s1_%s_%s2_%s' % (mA, var, sjs1, var, sjs2)
+                hst[year]['mA_'+cat].Fill(ch.FatJet_PNet_34massAa[iH])
+
+        ## End conditional: if len(sjmass) == 2
 
 
     ## End loop: for iEvt in range(nEntries)
@@ -227,20 +253,24 @@ for year in YEARS:
         keyA = key.replace('Hi','All').replace('Med','All').replace('Lo','All')
         hist.SetLineWidth(2)
         hist.Write()
-        R.gStyle.SetOptStat(1110) ## Display rms, mean, and number of entries
         can = R.TCanvas(hist.GetName())
         can.cd()
-        hist.Draw('histe')
+        if key.endswith('2vs1'):
+            R.gStyle.SetOptStat(0) ## Don't display stat boxes
+            hist.Draw('colz')
+        else:
+            R.gStyle.SetOptStat(1110) ## Display rms, mean, and number of entries
+            hist.Draw('histe')
         can.SaveAs('plots/png/haa4b_mA_calib/'+hist.GetName()+'.png')
         del can
 
         R.gStyle.SetOptStat(0) ## Don't display stat boxes
-        if 'All' in keyA and not keyA in cans[year].keys():
+        if keyA.count('All') == 2 and not keyA in cans[year].keys():
             maxs[year][keyA] = hist.GetMaximum()
             cans[year][keyA] = R.TCanvas('%s_%s' % (keyA, year))
             cans[year][keyA].cd()
             hist.Draw('histe')
-        elif 'All' in keyA:
+        elif keyA.count('All') == 2:
             maxs[year][keyA] = max(maxs[year][keyA], hist.GetMaximum())
             cans[year][keyA].cd()
             hist.Draw('histesame')
