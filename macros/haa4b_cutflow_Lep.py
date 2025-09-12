@@ -10,7 +10,7 @@ import ROOT as R
 R.gROOT.SetBatch(True)  ## Don't display histograms or canvases when drawn
 
 MAX_EVT = -1  ## Maximum number of events to process per MC sample
-PRT_EVT = 1000    ## Print every Nth event while processing
+PRT_EVT = 1000000    ## Print every Nth event while processing
 VERBOSE = False
 DEBUG   = [] ## [luminosityBlock, event] to debug
 YEAR = '2018'
@@ -24,9 +24,10 @@ IN_DIR = '/eos/cms/store/group/phys_susy/HToaaTo4b/NanoAOD/%s/MC/PNet_v2_2024_11
 
 CUTS = ['all','noise','trigMu','trigEle','1mu','1ele',
         'mumu','muele','elemu','eleele','lep_trig',
+        'mumu_trg','muele_trg','elemu_trg','eleele_trg',
         'fatH_presel','fatH_lep_ovlp','1mu_sel','1ele_sel',
         'mumu_sel','muele_sel','elemu_sel','eleele_sel',
-        'Zveto','Zsel','eq0b','eq1b','ge1b','ge2b',
+        'Zveto','Zsel','Zpt','eq0b','eq1b','ge1b','ge2b',
         'ttbll','ttbmm','ttbme','ttbem','ttbee',
         'Zll','Zmm','Zee',
         'WlvLo','WlvHi','ttblv','ttbblv',
@@ -36,6 +37,7 @@ CUTS = ['all','noise','trigMu','trigEle','1mu','1ele',
 CATS = {}
 CATS['ttbll'] = [['all'],['noise'],['trigMu','trigEle'],
                  ['mumu','muele','elemu','eleele'],['lep_trig'],
+                 ['mumu_trg','muele_trg','elemu_trg','eleele_trg'],
                  ['fatH_presel'],['fatH_lep_ovlp'],
                  ['mumu_sel','muele_sel','elemu_sel','eleele_sel'],
                  ['Zveto'],['ge1b'],['ttbll','ttbmm','ttbme','ttbem','ttbee'],
@@ -44,15 +46,18 @@ CATS['Zll'] = [['all'],['noise'],['trigMu','trigEle'],
                ['mumu','eleele'],['lep_trig'],
                ['fatH_presel'],['fatH_lep_ovlp'],
                ['mumu_sel','eleele_sel'],
-               ['Zsel'],['Zll','Zmm','Zee'],
+               ['Zsel'],['Zpt'],['Zll','Zmm','Zee'],
                ['X4bSB'],['X4bSR'],['4GenB']]
-CATS['1Lep'] = [['all'],['noise'],['trigMu','trigEle'],
-                ['1mu','1ele'],['fatH_presel'],['fatH_lep_ovlp'],
-                ['1mu_sel','1ele_sel'],['eq0b','eq1b','ge2b'],
-                ['WlvLo','WmvLo','WevLo','WlvHi','WmvHi','WevHi',
-                 'ttblv','ttbmv','ttbev','ttbblv','ttbbmv','ttbbev'],
-                ['X4bSB'],['X4bSR'],['4GenB']]
+# CATS['1Lep'] = [['all'],['noise'],['trigMu','trigEle'],
+#                 ['1mu','1ele'],['fatH_presel'],['fatH_lep_ovlp'],
+#                 ['1mu_sel','1ele_sel'],['eq0b','eq1b','ge2b'],
+#                 ['WlvLo','WmvLo','WevLo','WlvHi','WmvHi','WevHi',
+#                  'ttblv','ttbmv','ttbev','ttbblv','ttbbmv','ttbbev'],
+#                 ['X4bSB'],['X4bSR'],['4GenB']]
 
+## Compose event string for printouts
+def evt_str(chain):
+    return 'Run : %d, LS : %d, event : %d' % (chain.run, chain.luminosityBlock, chain.event)
 
 ## Function to iterate counters based on per-event flags
 def fill_counts(counter, selected):
@@ -191,6 +196,7 @@ for samp in SAMPS:
         ## Muon selection from Table 2 in Ch. 4 of AN2023_047_v4
         iSelMu = []
         iTrgMu = []
+        iTrgMuHLT = []
         for iMu in range(ch.nMuon):
             if     ch.Muon_pt[iMu]   <= 10:   continue
             if abs(ch.Muon_eta[iMu]) >= 2.4:  continue
@@ -201,7 +207,9 @@ for samp in SAMPS:
             if abs(ch.Muon_dxy[iMu])         >= 0.02: continue
             if abs(ch.Muon_dz[iMu])          >= 0.10: continue
             iSelMu.append(iMu)
+            ## Specific cuts for triggerable muons
             if ch.Muon_pt[iMu] > 26.0 + 3.0*(YEAR == '2017'):
+                iTrgMu.append(iMu)
                 vMu = R.TLorentzVector()
                 vMu.SetPtEtaPhiM(ch.Muon_pt[iMu], ch.Muon_eta[iMu],
                                  ch.Muon_phi[iMu], ch.Muon_mass[iMu])
@@ -211,29 +219,33 @@ for samp in SAMPS:
                     vTO.SetPtEtaPhiM(ch.TrigObj_pt[iTO], ch.TrigObj_eta[iTO],
                                      ch.TrigObj_phi[iTO], 0)
                     if vTO.DeltaR(vMu) < 0.5:
-                        iTrgMu.append(iMu)
+                        iTrgMuHLT.append(iMu)
                         break
         ## End loop: for iMu in range(ch.nMuon)
 
         ## Electron selection from Table 3 in Ch. 4 of AN2023_047_v4
         iSelEle = []
         iTrgEle = []
+        iTrgEleHLT = []
         for iEle in range(ch.nElectron):
             if             ch.Electron_pt[iEle]   <= 10:  continue
             if         abs(ch.Electron_eta[iEle]) >= 2.5: continue
+            if         abs(ch.Electron_eta[iEle]) > 1.44 and \
+                       abs(ch.Electron_eta[iEle]) < 1.57: continue
             if ch.Electron_mvaFall17V2Iso_WPL[iEle] == 0: continue
             if ch.Electron_mvaFall17V2Iso_WP90[iEle] == 0 and \
                (ch.Electron_pt[iEle] <= 35 or
                 ch.Electron_cutBased_HEEP[iEle] == 0): continue
-            if abs(ch.Electron_dxy[iEle])     >= 0.02: continue
-            if abs(ch.Electron_dz[iEle])      >= 0.10: continue
             iSelEle.append(iEle)
-            ## TODO: add trigger matching logic
+            ## Specific cuts for triggerable electrons
             if ch.Electron_pt[iEle] > 30.0 + 5.0*(not '2016' in YEAR) and \
+               abs(ch.Electron_dxy[iEle]) < 0.02 and \
+               abs(ch.Electron_dz[iEle])  < 0.10 and \
                ch.Electron_mvaFall17V2Iso_WP90[iEle] == 1 and \
                (ch.Electron_mvaFall17V2Iso_WP80[iEle] == 1 or \
                 (ch.Electron_pt[iEle] > 35 and \
                  ch.Electron_cutBased_HEEP[iEle] == 1)):
+                iTrgEle.append(iEle)
                 vEle = R.TLorentzVector()
                 vEle.SetPtEtaPhiM(ch.Electron_pt[iEle], ch.Electron_eta[iEle],
                                  ch.Electron_phi[iEle], ch.Electron_mass[iEle])
@@ -243,22 +255,45 @@ for samp in SAMPS:
                     vTO.SetPtEtaPhiM(ch.TrigObj_pt[iTO], ch.TrigObj_eta[iTO],
                                      ch.TrigObj_phi[iTO], 0)
                     if vTO.DeltaR(vEle) < 0.5:
-                        iTrgEle.append(iEle)
+                        iTrgEleHLT.append(iEle)
                         break
         ## End loop: for iEle in range(ch.nElectron)
 
-        sel['mumu']   = len(iSelMu) >= 2
-        sel['muele']  = len(iSelMu) >= 1 and len(iSelEle) >= 1
-        sel['elemu']  = sel['muele']
-        sel['eleele'] = len(iSelEle) >= 2
+        sel['mumu']   = sel['trigMu'] and len(iSelMu) >= 2
+        sel['muele']  = sel['trigMu'] and len(iSelMu) >= 1 and len(iSelEle) >= 1
+        sel['elemu']  = sel['trigEle'] and len(iSelMu) >= 1 and len(iSelEle) >= 1
+        sel['eleele'] = sel['trigEle'] and len(iSelEle) >= 2
+        if (not '1Lep' in CATS.keys()) and not (sel['mumu'] or sel['muele'] or sel['elemu'] or sel['eleele']):
+            count[samp] = fill_counts(count[samp], sel)
+            continue
+        if not sel['eleele']:
+            count[samp] = fill_counts(count[samp], sel)
+            continue
 
-        if len(iTrgMu) + len(iTrgEle) == 0:
+        if len(iTrgMuHLT) + len(iTrgEleHLT) == 0:
             count[samp] = fill_counts(count[samp], sel)
             continue
         sel['lep_trig'] = True
         sel['1mu']  = (len(iTrgMu) == 1 and len(iTrgEle) == 0)
         sel['1ele'] = (len(iTrgMu) == 0 and len(iTrgEle) == 1)
+        sel['mumu_trg']   = sel['mumu']   and len(iTrgMuHLT) >= 1
+        sel['muele_trg']  = sel['muele']  and len(iTrgMuHLT) >= 1
+        sel['elemu_trg']  = sel['elemu']  and len(iTrgEleHLT) >= 1 and len(iTrgMu) == 0
+        sel['eleele_trg'] = sel['eleele'] and len(iTrgEleHLT) >= 1
+        # if sel['muele_trg']+sel['elemu_trg'] > 1:
+        #     print('\nBuggy %s!!!' % evt_str(ch))
+        #     print('%d [%d] muons [trg], %d [%d] electrons [trg]' % (len(iSelMu), len(iTrgMu), len(iSelEle), len(iTrgEle)))
+        #     print('%d, %d, %d, %d' % (sel['mumu'], sel['muele'], sel['elemu'], sel['eleele']))
+        #     print('%d, %d, %d, %d' % (sel['mumu_trg'], sel['muele_trg'], sel['elemu_trg'], sel['eleele_trg']))
+        #     sys.exit()
+        # if sel['elemu_trg']:
+        #     print('%s has %d muons [%d trg], %d electrons [%d trg]' % (evt_str(ch), len(iSelMu), len(iTrgMu), len(iSelEle), len(iTrgEle)))
+        #     # print('  * Selected muons : '+''.join(str(iSelMu))+' ; electrons : '+''.join(str(iSelEle)))
+        #     # print('  * Trigger  muons : '+''.join(str(iTrgMu))+' ; electrons : '+''.join(str(iTrgEle)))
 
+        if not sel['eleele_trg']:
+            count[samp] = fill_counts(count[samp], sel)
+            continue
 
         ## Higgs candidate AK8 jet selection from Table 1 in Ch. 4 of AN2023_047_v4
         xFatH = -99
@@ -302,7 +337,7 @@ for samp in SAMPS:
                 if not vLep and iMu in iTrgMu:
                     vLep = vMu
 
-        for iEle in iTrgEle:
+        for iEle in iSelEle:
             vEle = R.TLorentzVector()
             vEle.SetPtEtaPhiM(ch.Electron_pt[iEle], ch.Electron_eta[iEle],
                               ch.Electron_phi[iEle], ch.Electron_mass[iEle])
@@ -313,34 +348,52 @@ for samp in SAMPS:
                 vSelEle.append(vEle)
                 if not vLep and iEle in iTrgEle:
                     vLep = vEle
+            # else:
+            #     print('%s FatH = (%.3f, %.3f), Ele[%d] = (%.3f, %.3f), dR = %.3f' % (evt_str(ch), vFatH.Eta(), vFatH.Phi(), iEle, vEle.Eta(), vEle.Phi(), vEle.DeltaR(vFatH)))
 
         if nOvlp > 0:
             count[samp] = fill_counts(count[samp], sel)
             continue
         sel['fatH_lep_ovlp'] = True
 
-        sel['1mu_sel']    = len(jSelMu) == 1 and len(jSelEle) == 0
-        sel['1ele_sel']   = len(jSelMu) == 0 and len(jSelEle) == 1
-        sel['mumu_sel']   = len(jSelMu) == 2 and len(jSelEle) == 0
-        sel['muele_sel']  = len(jSelMu) == 1 and len(jSelEle) == 1 and len(iTrgMu) == 1
-        sel['elemu_sel']  = len(jSelMu) == 1 and len(jSelEle) == 1 and len(iTrgMu) == 0
-        sel['eleele_sel'] = len(jSelMu) == 0 and len(jSelEle) == 2
+        sel['1mu_sel']    = (len(jSelMu) == 1 and len(jSelEle) == 0)
+        sel['1ele_sel']   = (len(jSelMu) == 0 and len(jSelEle) == 1)
+        sel['mumu_sel']   = (len(jSelMu) == 2 and len(jSelEle) == 0)
+        sel['muele_sel']  = (len(jSelMu) == 1 and len(jSelEle) == 1 and len(iTrgMu) == 1)
+        sel['elemu_sel']  = (len(jSelMu) == 1 and len(jSelEle) == 1 and len(iTrgMu) == 0)
+        sel['eleele_sel'] = (len(jSelMu) == 0 and len(jSelEle) == 2)
         sel_dilep_sel = (len(jSelMu) + len(jSelEle) == 2)
+
+        if not sel['eleele_sel']:
+            count[samp] = fill_counts(count[samp], sel)
+            continue
+        # if not sel['eleele_sel']:
+        #     print('%s has %d /%d muons [%d trg], %d / %d electrons [%d trg]' % (evt_str(ch), len(iSelMu), len(jSelMu), len(iTrgMu), len(iSelEle), len(jSelEle), len(iTrgEle)))
+        #     print('  * Selected muons : '+''.join(str(iSelMu))+' ; electrons : '+''.join(str(iSelEle)))
+        #     print('  * Non-ovlp muons : '+''.join(str(jSelMu))+' ; electrons : '+''.join(str(jSelEle)))
+        #     print('  * Trigger  muons : '+''.join(str(iTrgMu))+' ; electrons : '+''.join(str(iTrgEle)))
+
 
         sel['Zveto'] = ( (sel['mumu_sel'] and ch.Muon_charge[jSelMu[0]] + ch.Muon_charge[jSelMu[1]] == 0 and \
                           (vSelMu[0]+vSelMu[1]).M() > 12 and abs((vSelMu[0]+vSelMu[1]).M() - 91) > 10) or \
+                          # (vSelMu[0]+vSelMu[1]).M() > 12 and (abs((vSelMu[0]+vSelMu[1]).M() - 91) > 10 or \
+                          #                                     (vSelMu[0]+vSelMu[1]).Pt() <= 150)) or \
                          (sel['eleele_sel'] and ch.Electron_charge[jSelEle[0]] + ch.Electron_charge[jSelEle[1]] == 0 and \
                           (vSelEle[0]+vSelEle[1]).M() > 12 and abs((vSelEle[0]+vSelEle[1]).M() - 91) > 10) or \
+                          # (vSelEle[0]+vSelEle[1]).M() > 12 and (abs((vSelEle[0]+vSelEle[1]).M() - 91) > 10 or \
+                          #                                       (vSelEle[0]+vSelEle[1]).Pt() > 150)) or \
                          ((sel['muele_sel'] or sel['elemu_sel']) and (vSelMu[0]+vSelEle[0]).M() > 12 and \
                           ch.Muon_charge[jSelMu[0]] + ch.Electron_charge[jSelEle[0]] == 0) )
         sel['Zsel'] = ( (sel['mumu_sel'] and ch.Muon_charge[jSelMu[0]] + ch.Muon_charge[jSelMu[1]] == 0 and \
                          abs((vSelMu[0]+vSelMu[1]).M() - 91) < 10) or \
                          (sel['eleele_sel'] and ch.Electron_charge[jSelEle[0]] + ch.Electron_charge[jSelEle[1]] == 0 and \
                           abs((vSelEle[0]+vSelEle[1]).M() - 91) < 10) )
+        sel['Zpt'] = ( (sel['mumu_sel']   and (vSelMu[0]+vSelMu[1]).Pt() > 150) or \
+                       (sel['eleele_sel'] and (vSelEle[0]+vSelEle[1]).Pt() > 150) )
 
         ## b-tagged AK4 jet selection from Table 4 in Ch. 4 of AN2023_047_v4
         nBJet = 0
-        btagWPM = 0.2783 if YEAR == '2018' else (0.3040 if YEAR == '2017' else (0.2489 if 'post' in YEAR else 0.2598))
+        btagWPM = 0.2783 if YEAR == '2018' else (0.3040 if YEAR == '2017' else (0.2489 if 'ost' in YEAR else 0.2598))
         for iJet in range(ch.nJet):
             if      ch.Jet_pt[iJet]   <= 30:  continue
             if  abs(ch.Jet_eta[iJet]) >= 2.4: continue
@@ -384,10 +437,16 @@ for samp in SAMPS:
             sel['ttbme'] = sel['muele_sel']
             sel['ttbem'] = sel['elemu_sel']
             sel['ttbee'] = sel['eleele_sel']
-        if sel_dilep_sel and sel['Zsel']:
+        if sel_dilep_sel and sel['Zsel'] and sel['Zpt']:
             sel['Zll'] = True
             sel['Zmm'] = sel['mumu_sel']
             sel['Zee'] = sel['eleele_sel']
+
+        if sel['ttbee']:
+            print('%s Fat[%d] = (%.1f, %.3f, %.3f), Ele[%d] = (%.3f, %.3f, %.3f), Ele[%d] = (%.3f, %.3f, %.3f)' % (evt_str(ch), xFatH, vFatH.Pt(), vFatH.Eta(), vFatH.Phi(), jSelEle[0], vSelEle[0].Pt(), vSelEle[0].Eta(), vSelEle[0].Phi(), jSelEle[1], vSelEle[1].Pt(), vSelEle[1].Eta(), vSelEle[1].Phi()))
+        else:
+            count[samp] = fill_counts(count[samp], sel)
+            continue
 
         sel['X4bSB'] = (xFatH_X4b > 0.66)
         sel['X4bSR'] = (xFatH_X4b > 0.93)
