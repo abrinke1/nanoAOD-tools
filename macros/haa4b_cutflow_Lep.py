@@ -9,20 +9,20 @@ import ROOT as R
 
 R.gROOT.SetBatch(True)  ## Don't display histograms or canvases when drawn
 
-MAX_EVT = -1  ## Maximum number of events to process per MC sample
-PRT_EVT = 1000000    ## Print every Nth event while processing
+MAX_EVT = -1     ## Maximum number of events to process per MC sample
+PRT_EVT = 10000  ## Print every Nth event while processing
 VERBOSE = False
 DEBUG   = [] ## [luminosityBlock, event] to debug
-YEAR = '2018'
+YEAR = '2018'  ## 2016APV, 2016, 2017, 2018
+
+IN_DIR = '/eos/cms/store/user/abrinke1/NanoPostv2/%s/' % YEAR
+SAMPS = ['WH_M-15','ZH_M-30','TTH_M-55'] #,'GluGluH_M-55','VBFH_M-15']
 
 # SAMPS = ['SingleMuon']
 # IN_DIR = '/eos/cms/store/group/phys_susy/HToaaTo4b/NanoAOD/%s/data/PNet_v2_2024_11_22/SingleMuon/r1_Run%sC/' % (YEAR,YEAR)
-# SAMPS = ['TTToSemiLeptonic']
-# IN_DIR = '/eos/cms/store/group/phys_susy/HToaaTo4b/NanoAOD/%s/MC/PNet_v2_2024_11_22/TTToSemiLeptonic_TuneCP5_13TeV-powheg-pythia8/r1/' % YEAR
-SAMPS = ['TTH_HToAATo4B_M-45']
-IN_DIR = '/eos/cms/store/group/phys_susy/HToaaTo4b/NanoAOD/%s/MC/PNet_v2_2024_11_22/SUSY_TTH_TTToAll_HToAATo4B_Pt150_M-45_TuneCP5_13TeV_madgraph_pythia8/r1/' % YEAR
 
-CUTS = ['all','noise','trigMu','trigEle','1mu','1ele',
+CUTS = ['all','nPV','noise',
+        'trigMu','trigEle','1mu','1ele',
         'mumu','muele','elemu','eleele','lep_trig',
         'mumu_trg','muele_trg','elemu_trg','eleele_trg',
         'fatH_presel','fatH_lep_ovlp','1mu_sel','1ele_sel',
@@ -35,25 +35,25 @@ CUTS = ['all','noise','trigMu','trigEle','1mu','1ele',
         'WevLo','WevHi','ttbev','ttbbev',
         'X4bSB','X4bSR','4GenB']
 CATS = {}
-CATS['ttbll'] = [['all'],['noise'],['trigMu','trigEle'],
+CATS['ttbll'] = [['all'],['nPV'],['noise'],['trigMu','trigEle'],
                  ['mumu','muele','elemu','eleele'],['lep_trig'],
                  ['mumu_trg','muele_trg','elemu_trg','eleele_trg'],
                  ['fatH_presel'],['fatH_lep_ovlp'],
                  ['mumu_sel','muele_sel','elemu_sel','eleele_sel'],
                  ['Zveto'],['ge1b'],['ttbll','ttbmm','ttbme','ttbem','ttbee'],
                  ['X4bSB'],['X4bSR'],['4GenB']]
-CATS['Zll'] = [['all'],['noise'],['trigMu','trigEle'],
+CATS['Zll'] = [['all'],['nPV'],['noise'],['trigMu','trigEle'],
                ['mumu','eleele'],['lep_trig'],
                ['fatH_presel'],['fatH_lep_ovlp'],
                ['mumu_sel','eleele_sel'],
                ['Zsel'],['Zpt'],['Zll','Zmm','Zee'],
                ['X4bSB'],['X4bSR'],['4GenB']]
-# CATS['1Lep'] = [['all'],['noise'],['trigMu','trigEle'],
-#                 ['1mu','1ele'],['fatH_presel'],['fatH_lep_ovlp'],
-#                 ['1mu_sel','1ele_sel'],['eq0b','eq1b','ge2b'],
-#                 ['WlvLo','WmvLo','WevLo','WlvHi','WmvHi','WevHi',
-#                  'ttblv','ttbmv','ttbev','ttbblv','ttbbmv','ttbbev'],
-#                 ['X4bSB'],['X4bSR'],['4GenB']]
+CATS['1Lep'] = [['all'],['nPV'],['noise'],['trigMu','trigEle'],
+                ['1mu','1ele'],['fatH_presel'],['fatH_lep_ovlp'],
+                ['1mu_sel','1ele_sel'],['eq0b','eq1b','ge2b'],
+                ['WlvLo','WmvLo','WevLo','WlvHi','WmvHi','WevHi',
+                 'ttblv','ttbmv','ttbev','ttbblv','ttbbmv','ttbbev'],
+                ['X4bSB'],['X4bSR'],['4GenB']]
 
 ## Compose event string for printouts
 def evt_str(chain):
@@ -111,18 +111,11 @@ for samp in SAMPS:
     ## End loop: for cat in CATS.keys()
 
     in_file_names = []
-    for fn in os.listdir(IN_DIR):
-        if samp == 'SingleMuon':
-            if fn.endswith('7.root'):
-                in_file_names.append(IN_DIR+fn)
-        elif samp == 'TTToSemiLeptonic':
-            if fn.endswith('9_8.root'):
-                in_file_names.append(IN_DIR+fn)
-        elif samp == 'TTH_HToAATo4B_M-45':
-            if fn.endswith('.root'):
-                in_file_names.append(IN_DIR+fn)
-        elif fn.startswith(samp+'_Skim'):
-            in_file_names.append(IN_DIR+fn)
+    # for fn in os.listdir(IN_DIR):
+    #     if samp == 'SingleMuon':
+    #         if fn.endswith('7.root'):
+    #             in_file_names.append(IN_DIR+fn)
+    in_file_names = [IN_DIR+samp+'_Skim.root']
 
     chains = {}
     chains['Events'] = 0
@@ -159,6 +152,11 @@ for samp in SAMPS:
            sel[cut] = False
         sel['all'] = True
 
+        ## nPV (TODO: not currently documented? not implemented in Lep? no effect on final yields)
+        sel['nPV'] = (ch.PV_npvsGood > 0)
+        if not sel['nPV']:
+            count[samp] = fill_counts(count[samp], sel)
+            continue
         ## Table 5 in Ch. 4 of AN2023_047_v4
         sel['noise'] = (ch.Flag_goodVertices and ch.Flag_globalSuperTightHalo2016Filter and
                         ch.Flag_HBHENoiseFilter and ch.Flag_HBHENoiseIsoFilter and
@@ -266,10 +264,6 @@ for samp in SAMPS:
         if (not '1Lep' in CATS.keys()) and not (sel['mumu'] or sel['muele'] or sel['elemu'] or sel['eleele']):
             count[samp] = fill_counts(count[samp], sel)
             continue
-        if not sel['eleele']:
-            count[samp] = fill_counts(count[samp], sel)
-            continue
-
         if len(iTrgMuHLT) + len(iTrgEleHLT) == 0:
             count[samp] = fill_counts(count[samp], sel)
             continue
@@ -280,29 +274,15 @@ for samp in SAMPS:
         sel['muele_trg']  = sel['muele']  and len(iTrgMuHLT) >= 1
         sel['elemu_trg']  = sel['elemu']  and len(iTrgEleHLT) >= 1 and len(iTrgMu) == 0
         sel['eleele_trg'] = sel['eleele'] and len(iTrgEleHLT) >= 1
-        # if sel['muele_trg']+sel['elemu_trg'] > 1:
-        #     print('\nBuggy %s!!!' % evt_str(ch))
-        #     print('%d [%d] muons [trg], %d [%d] electrons [trg]' % (len(iSelMu), len(iTrgMu), len(iSelEle), len(iTrgEle)))
-        #     print('%d, %d, %d, %d' % (sel['mumu'], sel['muele'], sel['elemu'], sel['eleele']))
-        #     print('%d, %d, %d, %d' % (sel['mumu_trg'], sel['muele_trg'], sel['elemu_trg'], sel['eleele_trg']))
-        #     sys.exit()
-        # if sel['elemu_trg']:
-        #     print('%s has %d muons [%d trg], %d electrons [%d trg]' % (evt_str(ch), len(iSelMu), len(iTrgMu), len(iSelEle), len(iTrgEle)))
-        #     # print('  * Selected muons : '+''.join(str(iSelMu))+' ; electrons : '+''.join(str(iSelEle)))
-        #     # print('  * Trigger  muons : '+''.join(str(iTrgMu))+' ; electrons : '+''.join(str(iTrgEle)))
-
-        if not sel['eleele_trg']:
-            count[samp] = fill_counts(count[samp], sel)
-            continue
 
         ## Higgs candidate AK8 jet selection from Table 1 in Ch. 4 of AN2023_047_v4
         xFatH = -99
         xFatH_X4b = -99
         for iFat in range(ch.nFatJet):
-            if      ch.FatJet_pt[iFat]   <= 250: continue
+            if    ch.FatJet_pt_nom[iFat] <= 250: continue
             if  abs(ch.FatJet_eta[iFat]) >= 2.4: continue
             if     ch.FatJet_jetId[iFat] != 6:   continue
-            if ch.FatJet_msoftdrop[iFat] <= 20:  continue
+            if ch.FatJet_msoftdrop_nom[iFat] <= 20: continue
             if ch.FatJet_particleNetMD_XbbvsQCD[iFat] <= 0.75: continue
             iFatH_X4b = 0.5*(ch.FatJet_PNet_X4b_v2a_Haa4b_score[iFat] + \
                              ch.FatJet_PNet_X4b_v2b_Haa4b_score[iFat])
@@ -323,8 +303,8 @@ for samp in SAMPS:
         vSelEle = []
         vLep = None
         vFatH = R.TLorentzVector()
-        vFatH.SetPtEtaPhiM(ch.FatJet_pt[xFatH], ch.FatJet_eta[xFatH],
-                           ch.FatJet_phi[xFatH], ch.FatJet_mass[xFatH])
+        vFatH.SetPtEtaPhiM(ch.FatJet_pt_nom[xFatH], ch.FatJet_eta[xFatH],
+                           ch.FatJet_phi[xFatH], ch.FatJet_mass_nom[xFatH])
         for iMu in iSelMu:
             vMu = R.TLorentzVector()
             vMu.SetPtEtaPhiM(ch.Muon_pt[iMu], ch.Muon_eta[iMu],
@@ -348,8 +328,6 @@ for samp in SAMPS:
                 vSelEle.append(vEle)
                 if not vLep and iEle in iTrgEle:
                     vLep = vEle
-            # else:
-            #     print('%s FatH = (%.3f, %.3f), Ele[%d] = (%.3f, %.3f), dR = %.3f' % (evt_str(ch), vFatH.Eta(), vFatH.Phi(), iEle, vEle.Eta(), vEle.Phi(), vEle.DeltaR(vFatH)))
 
         if nOvlp > 0:
             count[samp] = fill_counts(count[samp], sel)
@@ -364,30 +342,20 @@ for samp in SAMPS:
         sel['eleele_sel'] = (len(jSelMu) == 0 and len(jSelEle) == 2)
         sel_dilep_sel = (len(jSelMu) + len(jSelEle) == 2)
 
-        if not sel['eleele_sel']:
-            count[samp] = fill_counts(count[samp], sel)
-            continue
-        # if not sel['eleele_sel']:
-        #     print('%s has %d /%d muons [%d trg], %d / %d electrons [%d trg]' % (evt_str(ch), len(iSelMu), len(jSelMu), len(iTrgMu), len(iSelEle), len(jSelEle), len(iTrgEle)))
-        #     print('  * Selected muons : '+''.join(str(iSelMu))+' ; electrons : '+''.join(str(iSelEle)))
-        #     print('  * Non-ovlp muons : '+''.join(str(jSelMu))+' ; electrons : '+''.join(str(jSelEle)))
-        #     print('  * Trigger  muons : '+''.join(str(iTrgMu))+' ; electrons : '+''.join(str(iTrgEle)))
-
-
         sel['Zveto'] = ( (sel['mumu_sel'] and ch.Muon_charge[jSelMu[0]] + ch.Muon_charge[jSelMu[1]] == 0 and \
-                          (vSelMu[0]+vSelMu[1]).M() > 12 and abs((vSelMu[0]+vSelMu[1]).M() - 91) > 10) or \
-                          # (vSelMu[0]+vSelMu[1]).M() > 12 and (abs((vSelMu[0]+vSelMu[1]).M() - 91) > 10 or \
+                          (vSelMu[0]+vSelMu[1]).M() > 12 and abs((vSelMu[0]+vSelMu[1]).M() - 90) > 10) or \
+                          # (vSelMu[0]+vSelMu[1]).M() > 12 and (abs((vSelMu[0]+vSelMu[1]).M() - 90) > 10 or \
                           #                                     (vSelMu[0]+vSelMu[1]).Pt() <= 150)) or \
                          (sel['eleele_sel'] and ch.Electron_charge[jSelEle[0]] + ch.Electron_charge[jSelEle[1]] == 0 and \
-                          (vSelEle[0]+vSelEle[1]).M() > 12 and abs((vSelEle[0]+vSelEle[1]).M() - 91) > 10) or \
-                          # (vSelEle[0]+vSelEle[1]).M() > 12 and (abs((vSelEle[0]+vSelEle[1]).M() - 91) > 10 or \
+                          (vSelEle[0]+vSelEle[1]).M() > 12 and abs((vSelEle[0]+vSelEle[1]).M() - 90) > 10) or \
+                          # (vSelEle[0]+vSelEle[1]).M() > 12 and (abs((vSelEle[0]+vSelEle[1]).M() - 90) > 10 or \
                           #                                       (vSelEle[0]+vSelEle[1]).Pt() > 150)) or \
                          ((sel['muele_sel'] or sel['elemu_sel']) and (vSelMu[0]+vSelEle[0]).M() > 12 and \
                           ch.Muon_charge[jSelMu[0]] + ch.Electron_charge[jSelEle[0]] == 0) )
         sel['Zsel'] = ( (sel['mumu_sel'] and ch.Muon_charge[jSelMu[0]] + ch.Muon_charge[jSelMu[1]] == 0 and \
-                         abs((vSelMu[0]+vSelMu[1]).M() - 91) < 10) or \
+                         abs((vSelMu[0]+vSelMu[1]).M() - 90) < 10) or \
                          (sel['eleele_sel'] and ch.Electron_charge[jSelEle[0]] + ch.Electron_charge[jSelEle[1]] == 0 and \
-                          abs((vSelEle[0]+vSelEle[1]).M() - 91) < 10) )
+                          abs((vSelEle[0]+vSelEle[1]).M() - 90) < 10) )
         sel['Zpt'] = ( (sel['mumu_sel']   and (vSelMu[0]+vSelMu[1]).Pt() > 150) or \
                        (sel['eleele_sel'] and (vSelEle[0]+vSelEle[1]).Pt() > 150) )
 
@@ -395,15 +363,15 @@ for samp in SAMPS:
         nBJet = 0
         btagWPM = 0.2783 if YEAR == '2018' else (0.3040 if YEAR == '2017' else (0.2489 if 'ost' in YEAR else 0.2598))
         for iJet in range(ch.nJet):
-            if      ch.Jet_pt[iJet]   <= 30:  continue
+            if   ch.Jet_pt_nom[iJet]  <= 30:  continue
             if  abs(ch.Jet_eta[iJet]) >= 2.4: continue
             if     ch.Jet_jetId[iJet] != 6:   continue
-            if   ch.Jet_puId[iJet] < 4 and \
-                    ch.Jet_pt[iJet]    <= 50: continue
+            if     ch.Jet_puId[iJet]   < 4 and \
+                 ch.Jet_pt_nom[iJet]  <= 50: continue
             if ch.Jet_btagDeepFlavB[iJet] <= btagWPM: continue
             vJet = R.TLorentzVector()
-            vJet.SetPtEtaPhiM(ch.Jet_pt[iJet], ch.Jet_eta[iJet],
-                              ch.Jet_phi[iJet], ch.Jet_mass[iJet])
+            vJet.SetPtEtaPhiM(ch.Jet_pt_nom[iJet], ch.Jet_eta[iJet],
+                              ch.Jet_phi[iJet], ch.Jet_mass_nom[iJet])
             if vJet.DeltaR(vFatH) <= 0.8: continue
             ovlpLep = False
             for vLep in (vSelMu+vSelEle):
@@ -441,12 +409,6 @@ for samp in SAMPS:
             sel['Zll'] = True
             sel['Zmm'] = sel['mumu_sel']
             sel['Zee'] = sel['eleele_sel']
-
-        if sel['ttbee']:
-            print('%s Fat[%d] = (%.1f, %.3f, %.3f), Ele[%d] = (%.3f, %.3f, %.3f), Ele[%d] = (%.3f, %.3f, %.3f)' % (evt_str(ch), xFatH, vFatH.Pt(), vFatH.Eta(), vFatH.Phi(), jSelEle[0], vSelEle[0].Pt(), vSelEle[0].Eta(), vSelEle[0].Phi(), jSelEle[1], vSelEle[1].Pt(), vSelEle[1].Eta(), vSelEle[1].Phi()))
-        else:
-            count[samp] = fill_counts(count[samp], sel)
-            continue
 
         sel['X4bSB'] = (xFatH_X4b > 0.66)
         sel['X4bSR'] = (xFatH_X4b > 0.93)
