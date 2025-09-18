@@ -374,7 +374,7 @@ for samp in SAMPS:
 
         ## b-tagged AK4 jet selection from Table 4 in Ch. 4 of AN2023_047_v4
         nBJet = 0
-        btagWPM = 0.2783 if YEAR == '2018' else (0.3040 if YEAR == '2017' else (0.2489 if 'ost' in YEAR else 0.2598))
+        btagWPM = 0.2783 if YEAR == '2018' else (0.3040 if YEAR == '2017' else (0.2598 if 'APV' in YEAR else 0.2489))
         for iJet in range(ch.nJet):
             if   ch.Jet_pt_nom[iJet]  <= 30:  continue
             if  abs(ch.Jet_eta[iJet]) >= 2.4: continue
