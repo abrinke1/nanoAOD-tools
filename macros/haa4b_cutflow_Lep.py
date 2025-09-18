@@ -13,10 +13,12 @@ MAX_EVT = -1     ## Maximum number of events to process per MC sample
 PRT_EVT = 10000  ## Print every Nth event while processing
 VERBOSE = False
 DEBUG   = [] ## [luminosityBlock, event] to debug
-YEAR = '2018'  ## 2016APV, 2016, 2017, 2018
+YEAR = '2016APV'  ## 2016APV, 2016, 2017, 2018
 
 IN_DIR = '/eos/cms/store/user/abrinke1/NanoPostv2/%s/' % YEAR
 SAMPS = ['WH_M-15','ZH_M-30','TTH_M-55'] #,'GluGluH_M-55','VBFH_M-15']
+#SAMPS = ['TTH_M-55'] #,'GluGluH_M-55','VBFH_M-15']
+CAT_FLOW = 'all' #'ttbbmv'
 
 # SAMPS = ['SingleMuon']
 # IN_DIR = '/eos/cms/store/group/phys_susy/HToaaTo4b/NanoAOD/%s/data/PNet_v2_2024_11_22/SingleMuon/r1_Run%sC/' % (YEAR,YEAR)
@@ -190,6 +192,9 @@ for samp in SAMPS:
         if not (sel['trigMu'] or sel['trigEle']):
             count[samp] = fill_counts(count[samp], sel)
             continue
+        if CAT_FLOW == 'ttbbmv' and not sel['trigMu']:
+            count[samp] = fill_counts(count[samp], sel)
+            continue
 
         ## Muon selection from Table 2 in Ch. 4 of AN2023_047_v4
         iSelMu = []
@@ -275,6 +280,10 @@ for samp in SAMPS:
         sel['elemu_trg']  = sel['elemu']  and len(iTrgEleHLT) >= 1 and len(iTrgMu) == 0
         sel['eleele_trg'] = sel['eleele'] and len(iTrgEleHLT) >= 1
 
+        if CAT_FLOW == 'ttbbmv' and not sel['1mu']:
+            count[samp] = fill_counts(count[samp], sel)
+            continue
+
         ## Higgs candidate AK8 jet selection from Table 1 in Ch. 4 of AN2023_047_v4
         xFatH = -99
         xFatH_X4b = -99
@@ -342,6 +351,10 @@ for samp in SAMPS:
         sel['eleele_sel'] = (len(jSelMu) == 0 and len(jSelEle) == 2)
         sel_dilep_sel = (len(jSelMu) + len(jSelEle) == 2)
 
+        if CAT_FLOW == 'ttbbmv' and not sel['1mu_sel']:
+            count[samp] = fill_counts(count[samp], sel)
+            continue
+
         sel['Zveto'] = ( (sel['mumu_sel'] and ch.Muon_charge[jSelMu[0]] + ch.Muon_charge[jSelMu[1]] == 0 and \
                           (vSelMu[0]+vSelMu[1]).M() > 12 and abs((vSelMu[0]+vSelMu[1]).M() - 90) > 10) or \
                           # (vSelMu[0]+vSelMu[1]).M() > 12 and (abs((vSelMu[0]+vSelMu[1]).M() - 90) > 10 or \
@@ -386,8 +399,12 @@ for samp in SAMPS:
         sel['ge1b'] = (nBJet >= 1)
         sel['ge2b'] = (nBJet >= 2)
 
+        if CAT_FLOW == 'ttbbmv' and not sel['ge2b']:
+            count[samp] = fill_counts(count[samp], sel)
+            continue
+
         vMET = R.TLorentzVector()
-        vMET.SetPtEtaPhiM(ch.MET_pt, 0, ch.MET_phi, 0)
+        vMET.SetPtEtaPhiM(ch.MET_T1_pt, 0, ch.MET_T1_phi, 0)
         
         if sel['1mu_sel'] or sel['1ele_sel']:
             if sel['eq0b'] and abs(vFatH.DeltaPhi(vLep+vMET)) > np.pi*0.75:
@@ -409,6 +426,10 @@ for samp in SAMPS:
             sel['Zll'] = True
             sel['Zmm'] = sel['mumu_sel']
             sel['Zee'] = sel['eleele_sel']
+
+        if CAT_FLOW == 'ttbbmv' and not sel['ttbbmv']:
+            count[samp] = fill_counts(count[samp], sel)
+            continue
 
         sel['X4bSB'] = (xFatH_X4b > 0.66)
         sel['X4bSR'] = (xFatH_X4b > 0.93)
