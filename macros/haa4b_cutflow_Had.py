@@ -16,8 +16,8 @@ DEBUG   = [] ## [luminosityBlock, event] to debug
 YEAR = '2018'  ## 2016APV, 2016, 2017, 2018
 
 IN_DIR = '/eos/cms/store/user/abrinke1/NanoPostv2/%s/' % YEAR
-#SAMPS = ['GluGluH_M-55','VBFH_M-15','WH_M-15','ZH_M-30','TTH_M-55']
-SAMPS = ['TTH_M-55']
+SAMPS = ['GluGluH_M-55','VBFH_M-15','WH_M-15','ZH_M-30','TTH_M-55']
+#SAMPS = ['TTH_M-55']
 
 # SAMPS = ['SingleMuon']
 # IN_DIR = '/eos/cms/store/group/phys_susy/HToaaTo4b/NanoAOD/%s/data/PNet_v2_2024_11_22/SingleMuon/r1_Run%sC/' % (YEAR,YEAR)
@@ -316,6 +316,8 @@ for samp in SAMPS:
         for iEle in range(ch.nElectron):
             if ch.Electron_pt[iEle] <= 30.0 + 5.0*(not '2016' in YEAR): continue
             if         abs(ch.Electron_eta[iEle]) >= 2.5: continue
+            if         abs(ch.Electron_eta[iEle]) > 1.44 and \
+                       abs(ch.Electron_eta[iEle]) < 1.57: continue
             if ch.Electron_mvaFall17V2Iso_WP90[iEle] == 0: continue
             if ch.Electron_mvaFall17V2Iso_WP80[iEle] == 0 and \
                (ch.Electron_pt[iEle] <= 35 or
@@ -329,7 +331,7 @@ for samp in SAMPS:
 
         ## AK4 jet selection from Table 4 in Ch. 4 of AN2023_047_v4
         nBJet = 0
-        btagWPM = 0.2783 if YEAR == '2018' else (0.3040 if YEAR == '2017' else (0.2489 if 'ost' in YEAR else 0.2598))
+        btagWPM = 0.2783 if YEAR == '2018' else (0.3040 if YEAR == '2017' else (0.2598 if 'APV' in YEAR else 0.2489))
         sel['bjet_veto_dR'] = True
         sel['bjet_veto'] = True
         vJets = []
@@ -364,7 +366,6 @@ for samp in SAMPS:
 
         vMET = R.TLorentzVector()
         vMET.SetPtEtaPhiM(ch.MET_T1_pt, 0, ch.MET_T1_phi, 0)
-        ## TODO: use MET_T1? or MET_T1_smear?
 
         sel['fatTop_veto'] = (xFatTop  < 0)
         sel['fatTop_sel']  = (xFatTop >= 0)
@@ -382,8 +383,8 @@ for samp in SAMPS:
         sel['VBFjj_sel']  = (len(vJetsLF) >= 2 and abs(q1.Eta() - q2.Eta())  > 2.2 and (q1+q2).M()  > 450)
 
         ## Category selection: prior cuts get applied in chain
-        sel['gg0lHi'] = (vFatH.Pt()  < 400)
-        sel['gg0lLo'] = (vFatH.Pt() >= 400)
+        sel['gg0lHi'] = (vFatH.Pt() >= 400)
+        sel['gg0lLo'] = (vFatH.Pt()  < 400)
         
         sel['VBFjjHi'] = (sel['VBFjj_sel'] and abs(q1.Eta() - q2.Eta()) > 3.0 and (q1+q2).M() > 900)
         sel['VBFjjLo'] = (sel['VBFjj_sel'] and not sel['VBFjjHi'])
@@ -392,16 +393,16 @@ for samp in SAMPS:
             sel[xSel+'PtHi'] = (sel[xSel] and vFatH.Pt() >= 400)
 
         if sel['fatWZ_sel']:
-            sel['VjjHi'] = (vFatWZ.Pt()  > 400)
-            sel['VjjLo'] = (vFatWZ.Pt() <= 400)
+            sel['VjjHi'] = (vFatWZ.Pt() >= 400)
+            sel['VjjLo'] = (vFatWZ.Pt()  < 400)
 
         if sel['fatTop_sel']:
             sel['tt0l0b'] = (len(vJetsBNonTop) == 0)
             sel['tt0l1b'] = (len(vJetsBNonTop) >= 1)
 
         if sel['MET_pt'] and sel['MET_dPhi']:
-            sel['ZvvHi'] = (vMET.Pt()  > 300)
-            sel['ZvvLo'] = (vMET.Pt() <= 300)
+            sel['ZvvHi'] = (vMET.Pt() >= 300)
+            sel['ZvvLo'] = (vMET.Pt()  < 300)
 
         sel['X4bSB'] = (xFatH_X4b > 0.84)
         sel['X4bSR'] = (xFatH_X4b > 0.96)
