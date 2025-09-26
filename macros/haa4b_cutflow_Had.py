@@ -371,8 +371,8 @@ for samp in SAMPS:
         sel['fatTop_sel']  = (xFatTop >= 0)
         sel['fatWZ_veto']  = (xFatWZ  < 0)
         sel['fatWZ_sel']   = (xFatWZ >= 0)
-        sel['MET_veto'] = (vMET.Pt() <= 200)
-        sel['MET_pt']   = (vMET.Pt()  > 200)
+        sel['MET_veto'] = (ch.MET_T1_pt <= 200)
+        sel['MET_pt']   = (ch.MET_T1_pt  > 200)
         sel['MET_dPhi'] = (abs(vMET.DeltaPhi(vFatH)) > (np.pi/2))
         
         if len(vJets) >= 2:
@@ -383,26 +383,26 @@ for samp in SAMPS:
         sel['VBFjj_sel']  = (len(vJetsLF) >= 2 and abs(q1.Eta() - q2.Eta())  > 2.2 and (q1+q2).M()  > 450)
 
         ## Category selection: prior cuts get applied in chain
-        sel['gg0lHi'] = (vFatH.Pt() >= 400)
-        sel['gg0lLo'] = (vFatH.Pt()  < 400)
+        sel['gg0lHi'] = (ch.FatJet_pt_nom[xFatH] >= 400)
+        sel['gg0lLo'] = (ch.FatJet_pt_nom[xFatH]  < 400)
         
         sel['VBFjjHi'] = (sel['VBFjj_sel'] and abs(q1.Eta() - q2.Eta()) > 3.0 and (q1+q2).M() > 900)
         sel['VBFjjLo'] = (sel['VBFjj_sel'] and not sel['VBFjjHi'])
         for xSel in ['VBFjjLo','VBFjjHi']:
-            sel[xSel+'PtLo'] = (sel[xSel] and vFatH.Pt()  < 400)
-            sel[xSel+'PtHi'] = (sel[xSel] and vFatH.Pt() >= 400)
+            sel[xSel+'PtLo'] = (sel[xSel] and ch.FatJet_pt_nom[xFatH]  < 400)
+            sel[xSel+'PtHi'] = (sel[xSel] and ch.FatJet_pt_nom[xFatH] >= 400)
 
         if sel['fatWZ_sel']:
-            sel['VjjHi'] = (vFatWZ.Pt() >= 400)
-            sel['VjjLo'] = (vFatWZ.Pt()  < 400)
+            sel['VjjHi'] = (ch.FatJet_pt_nom[xFatWZ] >= 400)
+            sel['VjjLo'] = (ch.FatJet_pt_nom[xFatWZ]  < 400)
 
         if sel['fatTop_sel']:
             sel['tt0l0b'] = (len(vJetsBNonTop) == 0)
             sel['tt0l1b'] = (len(vJetsBNonTop) >= 1)
 
         if sel['MET_pt'] and sel['MET_dPhi']:
-            sel['ZvvHi'] = (vMET.Pt() >= 300)
-            sel['ZvvLo'] = (vMET.Pt()  < 300)
+            sel['ZvvHi'] = (ch.MET_T1_pt >= 300)
+            sel['ZvvLo'] = (ch.MET_T1_pt  < 300)
 
         sel['X4bSB'] = (xFatH_X4b > 0.84)
         sel['X4bSR'] = (xFatH_X4b > 0.96)
