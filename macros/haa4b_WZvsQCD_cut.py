@@ -64,6 +64,9 @@ for year in YEARS:
 
         for iJ in range(ch.nFatJet):
             if iJ == ch.Haa4b_iFatH: continue  ## Cannot be Higgs candidate
+            if ch.FatJet_pt[iJ] <= 250: continue  ## Must pass pT > 250 GeV
+            if ch.FatJet_msoftdrop[iJ] <= 50: continue  ## Must pass msoft > 50 GeV
+            if ch.FatJet_msoftdrop[iJ] >= 220: continue  ## Must pass msoft < 220 GeV
             if ch.FatJet_Haa4b_candX[iJ] != 1: continue  ## Must be W/Z candidate
             if abs(ch.FatJet_genPart_pdgId[iJ]) != 24: continue  ## Must be GEN-matched to true W boson
             hst[year]['W'] .Fill(min(max(ch.FatJet_particleNet_WvsQCD[iJ],  0.1/NBINS), 1.0-0.1/NBINS))
@@ -118,3 +121,25 @@ print('\n*** All done!!! ***\n\n')
 #            WZvsQCD cut = 0.98000, efficiency = 72.581% (23311 / 32117)
 #        *** WZvsQCD cut = 0.98730, efficiency = 63.994% (20553 / 32117)
 #            WZvsQCD cut = 0.98740, efficiency = 63.172% (20289 / 32117)
+
+## Results from AWB 2025.09.12 (changed to 250 GeV)
+# In year 2016APV, WvsQCD cut = 0.974, efficiency = 67.21% (4727 / 7033)
+#              WZvsQCD cut = 0.97400, efficiency = 77.364% (5441 / 7033)
+#              WZvsQCD cut = 0.98430, efficiency = 67.652% (4758 / 7033)
+#              WZvsQCD cut = 0.98440, efficiency = 66.956% (4709 / 7033)
+
+# In year 2016, WvsQCD cut = 0.974, efficiency = 68.08% (4872 / 7156)
+#              WZvsQCD cut = 0.97400, efficiency = 78.046% (5585 / 7156)
+#              WZvsQCD cut = 0.98430, efficiency = 68.614% (4910 / 7156)
+#              WZvsQCD cut = 0.98440, efficiency = 67.831% (4854 / 7156)
+
+# In year 2017, WvsQCD cut = 0.978, efficiency = 66.06% (8367 / 12665)
+#              WZvsQCD cut = 0.97800, efficiency = 75.373% (9546 / 12665)
+#              WZvsQCD cut = 0.98580, efficiency = 66.427% (8413 / 12665)
+#              WZvsQCD cut = 0.98590, efficiency = 65.622% (8311 / 12665)
+
+# In year 2018, WvsQCD cut = 0.980, efficiency = 63.78% (18971 / 29744)
+#              WZvsQCD cut = 0.98000, efficiency = 72.885% (21679 / 29744)
+#              WZvsQCD cut = 0.98730, efficiency = 64.386% (19151 / 29744)
+#              WZvsQCD cut = 0.98740, efficiency = 63.566% (18907 / 29744)
+
