@@ -1,0 +1,145 @@
+#! /usr/bin/env python
+## Compute ParticleNet WZvsQCD thresholds with the same efficiency as official WvsQCD thresholds
+## https://twiki.cern.ch/twiki/bin/viewauth/CMS/ParticleNetSFs#2016_RunBCDEF
+
+import os
+import sys
+import subprocess
+import numpy as np
+import ROOT as R
+
+R.gROOT.SetBatch(True)  ## Don't display histograms or canvases when drawn
+
+MAX_EVT = -1     ## Maximum number of events to process per MC sample
+PRT_EVT = 10000  ## Print every Nth event while processing
+DEBUG   = False
+NBINS   = 10000  ## Number of bins in histogram
+
+## Location of postprocessed input files
+IN_DIRS  = '/eos/cms/store/group/phys_susy/HToaaTo4b/NanoAOD/YEAR/MC/PNet_v2_2024_11_22/'
+IN_FILES = 'SUSY_WH_WToAll_HToAATo4B_Pt150_M-mA_TuneCP5_13TeV_madgraph_pythia8/r1/PNet_v1_Skim_Lp_weight.root'
+
+YEARS  = ['2016APV','2016','2017','2018']
+MASSES = ['12']+[str(15+5*i) for i in range(10)]
+#YEARS  = ['2018']
+#MASSES = ['30']
+CUTS   = {'2016APV':0.974, '2016':0.974, '2017':0.978, '2018':0.980}
+
+## Histograms for WvsQCD and WZvsQCD distributions
+hst = {}
+
+for year in YEARS:
+    print('\n\n*** Beginning to look at year %s ***\n' % year)
+    hst[year] = {}
+    hst[year]['W']  = R.TH1D('h_WvsQCD_%s' % year, 'PNet WvsQCD %s' % year,  NBINS, 0, 1)
+    hst[year]['WZ'] = R.TH1D('h_WZvsQCD_%s' % year,'PNet WZvsQCD %s' % year, NBINS, 0, 1)
+
+    ## Combine input files into a single "chain"
+    in_file_names = [IN_DIRS.replace('YEAR',year)+IN_FILES.replace('mA',mA) for mA in MASSES]
+    chains = {}
+    chains['Events'] = 0
+    for i in range(len(in_file_names)):
+        print('Adding file %s' % in_file_names[i])
+        for key in chains.keys():
+            if i == 0: chains[key] = R.TChain(key)
+            chains[key].Add( in_file_names[i] )
+
+    ## Loop through events, select, and count
+    ch = chains['Events']  ## Shortcut expression
+    nEntries = ch.GetEntries()
+    print('\nEntering loop over %d events\n' % (nEntries))
+
+    for iEvt in range(nEntries):
+
+        if iEvt > MAX_EVT and MAX_EVT > 0: break
+        if (iEvt % PRT_EVT) == 0: print('Looking at event #%d / %d' % (iEvt, nEntries))
+
+        ch.GetEntry(iEvt)
+
+        if ch.Haa4b_nFatX < 1:  continue  ## Good W/Z candidate AK8 must exist
+        if ch.Haa4b_iFatH < 0:  continue  ## Good Haa4b candidate AK8 must exist
+        if ch.Haa4b_isLep == 1: continue  ## Cannot have triggerable lepton
+        if ch.Haa4b_FatH_tagHaa4b_v2a + \
+           ch.Haa4b_FatH_tagHaa4b_v2b < 2.0*0.84: continue  ## Higgs signal must pass WP80
+
+        for iJ in range(ch.nFatJet):
+            if iJ == ch.Haa4b_iFatH: continue  ## Cannot be Higgs candidate
+            if ch.FatJet_pt[iJ] <= 250: continue  ## Must pass pT > 250 GeV
+            if ch.FatJet_msoftdrop[iJ] <= 50: continue  ## Must pass msoft > 50 GeV
+            if ch.FatJet_msoftdrop[iJ] >= 220: continue  ## Must pass msoft < 220 GeV
+            if ch.FatJet_Haa4b_candX[iJ] != 1: continue  ## Must be W/Z candidate
+            if abs(ch.FatJet_genPart_pdgId[iJ]) != 24: continue  ## Must be GEN-matched to true W boson
+            hst[year]['W'] .Fill(min(max(ch.FatJet_particleNet_WvsQCD[iJ],  0.1/NBINS), 1.0-0.1/NBINS))
+            hst[year]['WZ'].Fill(min(max(ch.FatJet_particleNet_WZvsQCD[iJ], 0.1/NBINS), 1.0-0.1/NBINS))
+            break
+
+    ## End loop: for iEvt in range(nEntries)
+## End loop: for year in YEARS
+
+print('\n*** Finished looking at all years! ***\n\n')
+
+for year in YEARS:
+    cutW = CUTS[year]
+    iW = hst[year]['W'].Integral()
+    nW = hst[year]['W'].Integral(int(cutW*NBINS)+1, NBINS)
+    print('\nIn year %s, WvsQCD cut = %.3f, efficiency = %.2f%% (%d / %d)' % (year, cutW, 100.0*nW/iW, nW, iW))
+    cutWZ = -1.0
+    for iX in reversed(range(1, NBINS+1)):
+        if hst[year]['WZ'].Integral(iX, NBINS) > nW:
+            iWZ = hst[year]['WZ'].Integral()
+            nWZ = hst[year]['WZ'].Integral(iX, NBINS)
+            mWZ = hst[year]['WZ'].Integral(iX+1, NBINS)
+            lWZ = hst[year]['WZ'].Integral(int(cutW*NBINS)+1, NBINS)
+            cutWZn = hst[year]['WZ'].GetBinLowEdge(iX)
+            cutWZm = hst[year]['WZ'].GetBinLowEdge(iX+1)
+            print('             WZvsQCD cut = %.5f, efficiency = %.3f%% (%d / %d)' % (cutW, 100.0*lWZ/iWZ, lWZ, iWZ))
+            print('             WZvsQCD cut = %.5f, efficiency = %.3f%% (%d / %d)' % (cutWZn, 100.0*nWZ/iWZ, nWZ, iWZ))
+            print('             WZvsQCD cut = %.5f, efficiency = %.3f%% (%d / %d)' % (cutWZm, 100.0*mWZ/iWZ, mWZ, iWZ))
+            break
+    ## End loop: for iX in reversed(range(1, NBINS+1))
+## End loop: for year in YEARS
+
+print('\n*** All done!!! ***\n\n')
+
+## Results from AWB 2025.08.11
+# In year 2016APV, WvsQCD cut = 0.974, efficiency = 67.11% (5105 / 7607)
+#               WZvsQCD cut = 0.97400, efficiency = 77.218% (5874 / 7607)
+#           *** WZvsQCD cut = 0.98430, efficiency = 67.359% (5124 / 7607)
+#               WZvsQCD cut = 0.98440, efficiency = 66.649% (5070 / 7607)
+
+# In year 2016, WvsQCD cut = 0.974, efficiency = 68.17% (5235 / 7679)
+#            WZvsQCD cut = 0.97400, efficiency = 78.018% (5991 / 7679)
+#        *** WZvsQCD cut = 0.98430, efficiency = 68.512% (5261 / 7679)   
+#            WZvsQCD cut = 0.98440, efficiency = 67.769% (5204 / 7679)
+
+# In year 2017, WvsQCD cut = 0.978, efficiency = 65.83% (8883 / 13494)
+#            WZvsQCD cut = 0.97800, efficiency = 75.056% (10128 / 13494)
+#        *** WZvsQCD cut = 0.98580, efficiency = 66.066% (8915 / 13494)
+#            WZvsQCD cut = 0.98590, efficiency = 65.288% (8810 / 13494)
+
+# In year 2018, WvsQCD cut = 0.980, efficiency = 63.50% (20393 / 32117)
+#            WZvsQCD cut = 0.98000, efficiency = 72.581% (23311 / 32117)
+#        *** WZvsQCD cut = 0.98730, efficiency = 63.994% (20553 / 32117)
+#            WZvsQCD cut = 0.98740, efficiency = 63.172% (20289 / 32117)
+
+## Results from AWB 2025.09.12 (changed to 250 GeV)
+# In year 2016APV, WvsQCD cut = 0.974, efficiency = 67.21% (4727 / 7033)
+#              WZvsQCD cut = 0.97400, efficiency = 77.364% (5441 / 7033)
+#              WZvsQCD cut = 0.98430, efficiency = 67.652% (4758 / 7033)
+#              WZvsQCD cut = 0.98440, efficiency = 66.956% (4709 / 7033)
+
+# In year 2016, WvsQCD cut = 0.974, efficiency = 68.08% (4872 / 7156)
+#              WZvsQCD cut = 0.97400, efficiency = 78.046% (5585 / 7156)
+#              WZvsQCD cut = 0.98430, efficiency = 68.614% (4910 / 7156)
+#              WZvsQCD cut = 0.98440, efficiency = 67.831% (4854 / 7156)
+
+# In year 2017, WvsQCD cut = 0.978, efficiency = 66.06% (8367 / 12665)
+#              WZvsQCD cut = 0.97800, efficiency = 75.373% (9546 / 12665)
+#              WZvsQCD cut = 0.98580, efficiency = 66.427% (8413 / 12665)
+#              WZvsQCD cut = 0.98590, efficiency = 65.622% (8311 / 12665)
+
+# In year 2018, WvsQCD cut = 0.980, efficiency = 63.78% (18971 / 29744)
+#              WZvsQCD cut = 0.98000, efficiency = 72.885% (21679 / 29744)
+#              WZvsQCD cut = 0.98730, efficiency = 64.386% (19151 / 29744)
+#              WZvsQCD cut = 0.98740, efficiency = 63.566% (18907 / 29744)
+
